@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/StevenCyb/SnAPI/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,8 +31,6 @@ func runHandler(t *testing.T, dir string) (*Parser, error) {
 	return p, p.parseHandler()
 }
 
-func strPtr(s string) *string { return &s }
-
 func TestExtractHandlerMeta_NoMethodReturnsNil(t *testing.T) {
 	t.Parallel()
 	assert.Nil(t, extractHandlerMeta("@snapi.description(\"x\")"))
@@ -57,13 +54,16 @@ func TestExtractHandlerMeta_FullAnnotations(t *testing.T) {
 	require.NotNil(t, meta)
 	assert.Equal(t, "POST", meta.Method)
 	assert.Equal(t, "/users", meta.Path)
-	assert.Equal(t, strPtr("create user"), meta.Description)
+	require.NotNil(t, meta.Description)
+	assert.Equal(t, "create user", *meta.Description)
 	assert.Equal(t, []string{"Auth", "Logger"}, meta.Middleware)
 	assert.True(t, meta.Deprecated)
-	assert.Equal(t, []models.HandlerStatus{
-		{Code: "200", Description: strPtr("OK")},
-		{Code: "500"},
-	}, meta.Status)
+	require.Len(t, meta.Status, 2)
+	assert.Equal(t, "200", meta.Status[0].Code)
+	require.NotNil(t, meta.Status[0].Description)
+	assert.Equal(t, "OK", *meta.Status[0].Description)
+	assert.Equal(t, "500", meta.Status[1].Code)
+	assert.Nil(t, meta.Status[1].Description)
 	assert.Equal(t, []string{"a", "b"}, meta.Tags)
 	require.Len(t, meta.Requests, 1)
 	assert.Equal(t, "application/xml", meta.Requests[0].ContentType)
@@ -108,7 +108,8 @@ func List(r runtime.Request, w runtime.Response) {}
 	require.NotNil(t, h.Meta)
 	assert.Equal(t, "GET", h.Meta.Method)
 	assert.Equal(t, "/users", h.Meta.Path)
-	assert.Equal(t, strPtr("list users"), h.Meta.Description)
+	require.NotNil(t, h.Meta.Description)
+	assert.Equal(t, "list users", *h.Meta.Description)
 	assert.Empty(t, h.Services)
 	assert.Equal(t, "github.com/StevenCyb/SnAPI/pkg/runtime", h.Imports["runtime"])
 }

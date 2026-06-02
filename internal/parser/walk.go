@@ -43,7 +43,6 @@ func (p *Parser) walkAndExtract(extractors ...extractor) error {
 	g := new(errgroup.Group)
 	g.SetLimit(runtime.GOMAXPROCS(0))
 	for _, path := range files {
-		path := path
 		g.Go(func() error {
 			fSet := token.NewFileSet()
 			node, err := goparser.ParseFile(fSet, path, nil, goparser.ParseComments)

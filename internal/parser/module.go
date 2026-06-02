@@ -90,8 +90,8 @@ func (p *Parser) parseModule() error {
 
 // stripComment removes any trailing "// ..." comment from a line.
 func stripComment(line string) string {
-	if idx := strings.Index(line, "//"); idx >= 0 {
-		return strings.TrimSpace(line[:idx])
+	if before, _, ok := strings.Cut(line, "//"); ok {
+		return strings.TrimSpace(before)
 	}
 	return line
 }

@@ -251,7 +251,7 @@ func defaultArgs() []string {
 }
 
 func setValueFromString(v reflect.Value, t reflect.Type, raw string) error {
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		elem := reflect.New(t.Elem())
 		if err := setValueFromString(elem.Elem(), t.Elem(), raw); err != nil {
 			return err
@@ -260,7 +260,7 @@ func setValueFromString(v reflect.Value, t reflect.Type, raw string) error {
 		return nil
 	}
 
-	if t == reflect.TypeOf(time.Duration(0)) {
+	if t == reflect.TypeFor[time.Duration]() {
 		d, err := time.ParseDuration(strings.TrimSpace(raw))
 		if err != nil {
 			return fmt.Errorf("invalid duration %q: %w", raw, err)

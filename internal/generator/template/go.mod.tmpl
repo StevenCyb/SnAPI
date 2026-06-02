@@ -1,0 +1,15 @@
+module bootstrapped
+
+go {{.GoVersion}}
+
+require (
+{{- range .Requires}}
+	{{.Path}} {{.Version}}{{if .Indirect}} // indirect{{end}}
+{{- end}}
+)
+
+replace (
+{{- range .Replaces}}
+	{{.OldPath}}{{if .OldVersion}} {{.OldVersion}}{{end}} => {{.NewPath}}{{if .NewVersion}} {{.NewVersion}}{{end}}
+{{- end}}
+)

@@ -12,7 +12,7 @@ Annotation-driven HTTP API generator for Go. Write plain handler functions,
 sprinkle `@SnAPI.*` comments on top, and SnAPI generates a runnable `main`
 package plus an OpenAPI/Swagger spec for it.
 
-## See It In 15 Seconds
+## See It In 5 Seconds
 
 Write this in your Go module:
 

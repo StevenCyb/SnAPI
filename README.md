@@ -29,7 +29,7 @@ interesting one to explore.
 ## Install
 
 ```sh
-go install github.com/StevenCyb/SnAPI/cmd/cli@latest
+go install github.com/StevenCyb/SnAPI/cmd/snapi@latest
 ```
 
 The binary is called `snapi`.

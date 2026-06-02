@@ -12,6 +12,37 @@ Annotation-driven HTTP API generator for Go. Write plain handler functions,
 sprinkle `@SnAPI.*` comments on top, and SnAPI generates a runnable `main`
 package plus an OpenAPI/Swagger spec for it.
 
+## See It In 15 Seconds
+
+Write this in your Go module:
+
+```go
+package api
+
+import (
+	"net/http"
+
+	"github.com/StevenCyb/SnAPI/pkg/runtime"
+)
+
+// @SnAPI.GET("/hello")
+func Hello(r runtime.Request, w runtime.Response) {
+	w.Html(http.StatusOK, "<h1>Hello</h1>")
+}
+```
+
+Run:
+
+```sh
+snapi serve . --swagger /swagger
+```
+
+Get:
+
+- `GET /hello` mapped and served.
+- OpenAPI + Swagger UI mounted at `/swagger`.
+- Auto-generated bootstrap (`main`, routing, middleware/lifecycle wiring).
+
 > **Disclaimer.** This is a personal *just-for-fun* project. It is **not
 > production ready**, has rough edges, and the API surface will change
 > without notice. Use it for hacking, learning, or as inspiration —

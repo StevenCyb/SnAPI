@@ -23,6 +23,7 @@ import (
 // @SnAPI.Description("This is the root endpoint.")
 // @SnAPI.Tags("example", "root")
 // @SnAPI.UseMiddleware(api.LoggingMiddleware)
+// @SnAPI.Response(200, "text/html", string)
 func GetRoot(r runtime.Request, w runtime.Response) {
 	w.Html(http.StatusOK, fmt.Sprintf("<h1>Hello, %s!</h1>", config.Name))
 }

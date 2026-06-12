@@ -221,6 +221,14 @@ func modelSchemaRef(mod *models.Module, imports map[string]string, schemas map[s
 	if idx := strings.LastIndex(modelName, "."); idx >= 0 {
 		alias, modelName = modelName[:idx], modelName[idx+1:]
 	}
+	if alias == "" {
+		if schema, ok := basicTypeSchema(modelName); ok {
+			if isArray {
+				return map[string]any{"type": "array", "items": schema}
+			}
+			return schema
+		}
+	}
 	if _, exists := schemas[modelName]; !exists {
 		if s, err := resolveModelSchema(mod, imports, alias, modelName, schemas); err == nil && s != nil {
 			schemas[modelName] = s

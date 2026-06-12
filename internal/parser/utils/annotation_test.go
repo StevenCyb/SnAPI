@@ -113,6 +113,23 @@ func TestExtractAnnotation(t *testing.T) {
 			input:    []string{"@SnAPI.get1()"},
 			expected: []Annotation{},
 		},
+		{
+			name:     "MIME type with plus sign (image/svg+xml)",
+			input:    []string{`@SnAPI.produce("image/svg+xml")`},
+			expected: []Annotation{{Name: "produce", Args: []string{"image/svg+xml"}}},
+		},
+		{
+			name:     "MIME type with plus sign (application/ld+json)",
+			input:    []string{`@SnAPI.consume("application/ld+json")`},
+			expected: []Annotation{{Name: "consume", Args: []string{"application/ld+json"}}},
+		},
+		{
+			name:  "multiple MIME types including plus sign",
+			input: []string{`@SnAPI.produce("application/json", "image/svg+xml", "application/ld+json")`},
+			expected: []Annotation{
+				{Name: "produce", Args: []string{"application/json", "image/svg+xml", "application/ld+json"}},
+			},
+		},
 	}
 
 	for _, tc := range tests {

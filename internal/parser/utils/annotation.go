@@ -6,7 +6,7 @@ import (
 )
 
 var reAnnotation = regexp.MustCompile(
-	`(?mi)^\s*@SnAPI\.(?P<name>[a-z]+)(?P<args>$|\(\)$|(\([a-z0-9./":,\s_\-{}\[\]]+\)$))`,
+	`(?mi)^\s*@SnAPI\.(?P<name>[a-z]+)(?P<args>$|\(\)$|(\([a-z0-9./"+:,\s_\-{}\[\]]+\)$))`,
 )
 
 // Annotation represents a single annotation with its name and arguments.

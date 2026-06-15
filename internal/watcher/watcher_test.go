@@ -1,13 +1,13 @@
 package watcher
 
 import (
-	"bytes"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/StevenCyb/SnAPI/internal/logger"
 	"github.com/fsnotify/fsnotify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -48,25 +48,25 @@ func NewMockFSWatcher() *MockFSWatcher {
 
 func TestNewSuccess(t *testing.T) {
 	t.Parallel()
-	buf := &bytes.Buffer{}
-	w, err := New(buf)
+	log := logger.New(io.Discard, io.Discard)
+	w, err := New(log)
 	require.NoError(t, err)
 	require.NotNil(t, w)
 	assert.NotNil(t, w.fsw)
 	assert.NotNil(t, w.stopCh)
-	assert.Equal(t, buf, w.out)
+	assert.Equal(t, log, w.log)
 }
 
 func TestNewOutput(t *testing.T) {
 	t.Parallel()
-	w, err := New(io.Discard)
+	w, err := New(logger.New(io.Discard, io.Discard))
 	require.NoError(t, err)
 	require.NotNil(t, w)
 }
 
 func TestStop(t *testing.T) {
 	t.Parallel()
-	w, err := New(&bytes.Buffer{})
+	w, err := New(logger.New(io.Discard, io.Discard))
 	require.NoError(t, err)
 
 	w.Stop()
@@ -94,7 +94,7 @@ func TestShouldIgnoreDir(t *testing.T) {
 		{"internal directory", "internal", false},
 	}
 
-	w, err := New(&bytes.Buffer{})
+	w, err := New(logger.New(io.Discard, io.Discard))
 	require.NoError(t, err)
 
 	for _, tt := range tests {
@@ -111,7 +111,7 @@ func TestAddRecursiveSuccess(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -143,7 +143,7 @@ func TestAddRecursiveError(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -166,7 +166,7 @@ func TestWatchSuccess(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -194,7 +194,7 @@ func TestWatchInvalidPath(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -209,7 +209,7 @@ func TestWatchAddError(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -225,10 +225,9 @@ func TestWatchAddError(t *testing.T) {
 func TestLoopGoFileChange(t *testing.T) {
 	t.Parallel()
 	mockFSW := NewMockFSWatcher()
-	buf := &bytes.Buffer{}
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    buf,
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -257,7 +256,7 @@ func TestLoopIgnoresTestFiles(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -286,7 +285,7 @@ func TestLoopIgnoresNonGoFiles(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -319,7 +318,7 @@ func TestLoopDebouncing(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -351,7 +350,7 @@ func TestLoopErrorHandling(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -373,7 +372,7 @@ func TestLoopStopsOnClosedEventChannel(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -399,7 +398,7 @@ func TestLoopStopsOnClosedErrorChannel(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -425,7 +424,7 @@ func TestLoopTimerCancellation(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 
@@ -460,7 +459,7 @@ func TestIntegrationWithRealFSWatcher(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
 
-	w, err := New(io.Discard)
+	w, err := New(logger.New(io.Discard, io.Discard))
 	require.NoError(t, err)
 	defer w.Stop()
 
@@ -491,12 +490,11 @@ func TestIntegrationWithRealFSWatcher(t *testing.T) {
 
 func TestNewFsnotifyError(t *testing.T) {
 	t.Parallel()
-	buf := &bytes.Buffer{}
 	failingFactory := func() (FSWatcher, error) {
 		return nil, filepath.ErrBadPattern
 	}
 
-	w, err := NewWithFactory(buf, failingFactory)
+	w, err := NewWithFactory(logger.New(io.Discard, io.Discard), failingFactory)
 	require.Error(t, err)
 	require.Nil(t, w)
 	assert.ErrorIs(t, err, filepath.ErrBadPattern)
@@ -507,7 +505,7 @@ func TestAddRecursiveSkipsFiles(t *testing.T) {
 	mockFSW := NewMockFSWatcher()
 	w := &Watcher{
 		fsw:    mockFSW,
-		out:    &bytes.Buffer{},
+		log:    logger.New(io.Discard, io.Discard),
 		stopCh: make(chan struct{}),
 	}
 

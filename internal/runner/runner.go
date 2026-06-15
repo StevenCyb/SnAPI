@@ -129,7 +129,7 @@ func Watch(src, dst, tags, swaggerPath string) {
 
 	restart()
 
-	w, err := watcher.New(os.Stderr)
+	w, err := watcher.New(log)
 	if err != nil {
 		log.Fatal("create watcher: %v", err)
 	}

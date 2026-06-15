@@ -2,12 +2,12 @@ package watcher
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/StevenCyb/SnAPI/internal/logger"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -46,24 +46,24 @@ func (a *fsnotifyAdapter) GetErrors() <-chan error {
 // file-system events on .go files.
 type Watcher struct {
 	fsw    FSWatcher
-	out    io.Writer
+	log    *logger.Logger
 	stopCh chan struct{}
 }
 
-// NewWithFactory creates a Watcher that writes log messages to out.
+// NewWithFactory creates a Watcher using the given logger.
 // It accepts a factory function for creating the FSWatcher (mainly for testing).
-func NewWithFactory(out io.Writer, factory func() (FSWatcher, error)) (*Watcher, error) {
+func NewWithFactory(log *logger.Logger, factory func() (FSWatcher, error)) (*Watcher, error) {
 	fsw, err := factory()
 	if err != nil {
 		return nil, fmt.Errorf("create watcher: %w", err)
 	}
 
-	return &Watcher{fsw: fsw, out: out, stopCh: make(chan struct{})}, nil
+	return &Watcher{fsw: fsw, log: log, stopCh: make(chan struct{})}, nil
 }
 
-// New creates a Watcher that writes log messages to out.
-func New(out io.Writer) (*Watcher, error) {
-	return NewWithFactory(out, func() (FSWatcher, error) {
+// New creates a Watcher using the given logger.
+func New(log *logger.Logger) (*Watcher, error) {
+	return NewWithFactory(log, func() (FSWatcher, error) {
 		fsw, err := fsnotify.NewWatcher()
 		if err != nil {
 			return nil, err
@@ -147,7 +147,7 @@ func (w *Watcher) loop(onChange func()) {
 			if !strings.HasSuffix(event.Name, ".go") || strings.HasSuffix(event.Name, "_test.go") {
 				continue
 			}
-			fmt.Fprintf(w.out, "[watch] %s changed\n", filepath.Base(event.Name))
+			w.log.Info("%s changed", filepath.Base(event.Name))
 			if timer != nil {
 				timer.Stop()
 			}
@@ -156,7 +156,7 @@ func (w *Watcher) loop(onChange func()) {
 			if !ok {
 				return
 			}
-			fmt.Fprintf(w.out, "[watch] error: %v\n", err)
+			w.log.Error("%v", err)
 		}
 	}
 }

@@ -70,9 +70,21 @@ func Build(src, dst, tags string) {
 
 // Serve runs the generated project from dst and streams its output back to
 // the user. Blocks until SIGINT/SIGTERM.
-func Serve(dst, tags string) {
+func Serve(dst, tags, dotenvPath string) {
 	log := logger.Scope("serve")
 	c := cmd.Run(dst, tags)
+
+	if dotenvPath != "" {
+		merged, err := injectDotEnv(c.Env, dotenvPath)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				log.Warn("load .env: %v", err)
+			}
+		} else {
+			c.Env = merged
+			log.Debug("loaded .env from %s", dotenvPath)
+		}
+	}
 
 	stdoutW := logger.NewPrefixWriter(os.Stdout, "app", IsTTY(os.Stdout))
 	stderrW := logger.NewPrefixWriter(os.Stderr, "app", IsTTY(os.Stderr))
@@ -92,7 +104,7 @@ func Serve(dst, tags string) {
 
 // Watch regenerates, rebuilds and (re)starts the server whenever a .go file
 // under src changes. Blocks until SIGINT/SIGTERM.
-func Watch(src, dst, tags, swaggerPath string) {
+func Watch(src, dst, tags, swaggerPath, dotenvPath string) {
 	log := logger.Scope("watch")
 	var (
 		mu      sync.Mutex
@@ -117,6 +129,11 @@ func Watch(src, dst, tags, swaggerPath string) {
 		}
 
 		c := cmd.Run(dst, tags)
+		if dotenvPath != "" {
+			if merged, err := injectDotEnv(c.Env, dotenvPath); err == nil {
+				c.Env = merged
+			}
+		}
 		c.Stdout = logger.NewPrefixWriter(os.Stdout, "app", IsTTY(os.Stdout))
 		c.Stderr = logger.NewPrefixWriter(os.Stderr, "app", IsTTY(os.Stderr))
 		if err := c.Start(); err != nil {

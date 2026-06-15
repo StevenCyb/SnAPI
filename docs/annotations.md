@@ -191,3 +191,37 @@ Every generated project ships with:
   an empty string) to skip swagger generation entirely.
 - Graceful shutdown on `SIGINT` / `SIGTERM`.
 - A standard `net/http` mux — no custom router, nothing to learn.
+
+---
+
+## .env file support
+
+`serve` and `watch` automatically load a `.env` file and inject its variables
+into the server process before startup. This lets `runtime.LoadConfig` see
+values that live in the project source tree even though the server runs from a
+temporary build directory.
+
+**Auto-detection** — if `--dotenv` is not set, SnAPI looks for `.env` in the
+project root (`<project_path>/.env`) and loads it when found.
+
+**Explicit path** — pass `--dotenv`/`-e` to point at any file:
+
+```sh
+snapi serve ./myproject --dotenv ./myproject/.env.local
+snapi watch ./myproject -e ./myproject/.env.staging
+```
+
+**Precedence** — variables already present in the shell environment always win
+over `.env` values. The file acts as a set of defaults, not overrides.
+
+**Supported syntax:**
+
+```dotenv
+# comment
+KEY=value
+export EXPORTED=yes
+QUOTED="hello world"
+SINGLE='hello world'
+WITH_EQUALS=base64==
+```
+

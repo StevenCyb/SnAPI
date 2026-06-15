@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 
 	"github.com/StevenCyb/SnAPI/internal/logger"
@@ -55,6 +56,8 @@ func main() {
 				cli.Option("tags", cli.Short('t'), cli.Default("")),
 				cli.Option("swagger", cli.Short('s'), cli.Default(""),
 					cli.Description("Mount Swagger UI at this path (empty = disabled).")),
+				cli.Option("dotenv", cli.Short('e'), cli.Default(""),
+					cli.Description("Path to a .env file to inject into the server process (default: <project_path>/.env).")),
 				cli.Handler(handleServe),
 			),
 		),
@@ -68,6 +71,8 @@ func main() {
 				cli.Option("tags", cli.Short('t'), cli.Default("")),
 				cli.Option("swagger", cli.Short('s'), cli.Default(""),
 					cli.Description("Mount Swagger UI at this path (empty = disabled).")),
+				cli.Option("dotenv", cli.Short('e'), cli.Default(""),
+					cli.Description("Path to a .env file to inject into the server process (default: <project_path>/.env).")),
 				cli.Handler(handleWatch),
 			),
 		),
@@ -105,10 +110,11 @@ func handleServe(ctx *cli.Context) error {
 	src := *ctx.GetArgument("project_path")
 	tags := *ctx.GetOption("tags")
 	swagger := *ctx.GetOption("swagger")
+	dotenv := resolveDotEnv(*ctx.GetOption("dotenv"), src)
 	logger.Info("Serve project at %s (tags=%q, swagger=%q)", src, tags, swagger)
 	runner.WithTempDir(func(tmp string) {
 		runner.Bootstrap(src, tmp, swagger)
-		runner.Serve(tmp, tags)
+		runner.Serve(tmp, tags, dotenv)
 	})
 	return nil
 }
@@ -117,12 +123,26 @@ func handleWatch(ctx *cli.Context) error {
 	src := *ctx.GetArgument("project_path")
 	tags := *ctx.GetOption("tags")
 	swagger := *ctx.GetOption("swagger")
+	dotenv := resolveDotEnv(*ctx.GetOption("dotenv"), src)
 	logger.Info("Watch project at %s (tags=%q, swagger=%q)", src, tags, swagger)
 	runner.WithTempDir(func(tmp string) {
 		runner.Bootstrap(src, tmp, swagger)
-		runner.Watch(src, tmp, tags, swagger)
+		runner.Watch(src, tmp, tags, swagger, dotenv)
 	})
 	return nil
+}
+
+// resolveDotEnv returns explicit if non-empty, otherwise falls back to
+// <projectPath>/.env if that file exists, or empty string if neither is found.
+func resolveDotEnv(explicit, projectPath string) string {
+	if explicit != "" {
+		return explicit
+	}
+	candidate := filepath.Join(projectPath, ".env")
+	if _, err := os.Stat(candidate); err == nil {
+		return candidate
+	}
+	return ""
 }
 
 // configureLoggingFromArgs strips global logging flags from argv and applies

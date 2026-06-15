@@ -68,33 +68,17 @@ The binary is called `snapi`.
 ## Quick start
 
 ```sh
-# generate + run an example project, restart on every .go change
+# watch project, regenerate and restart on every .go change
 snapi watch ./example
 
-# generate + run once (no file watching)
+# generate + run once
 snapi serve ./example
 
 # generate + compile to a single binary
 snapi build ./example ./bin/myapi
 ```
 
-Global flags (work on every command):
-
-| flag                 | description                              |
-| -------------------- | ---------------------------------------- |
-| `-l`, `--log-level`  | `debug`, `info`, `warn`, `error`         |
-| `--no-color`         | disable ANSI colors                      |
-| `SNAPI_LOG_LEVEL`    | env-var fallback for `--log-level`       |
-
-Per-command flags on `build` / `serve` / `watch`:
-
-| flag             | description                                                     |
-| ---------------- | --------------------------------------------------------------- |
-| `-t`, `--tags`   | build tags to forward to `go build` / `go run`                  |
-| `-s`, `--swagger`| mount path for Swagger UI + OpenAPI spec (empty = disabled)     |
-
-CLI logs and the spawned application's logs are colored and tagged
-distinctly so you can tell them apart at a glance.
+See [docs/cli.md](docs/cli.md) for the full command and flag reference.
 
 ## How it works
 
@@ -102,16 +86,22 @@ You point SnAPI at a Go module path. It:
 
 1. Parses every `.go` file looking for `@SnAPI.*` / `@snapi.*` comments.
 2. Builds an internal project model (handlers, middleware, lifecycle hooks,
-   config types, OpenAPI metadata).
+   OpenAPI metadata).
 3. Generates a fresh `main` package into a temp dir (or `output_path` for
    `build`) that wires `net/http`, registers all routes, mounts middleware,
-   runs lifecycle hooks, and (when `--swagger <path>` is given) serves a
-   Swagger UI at that path.
-4. `serve`/`watch` then `go run`s the generated project for you.
+   runs lifecycle hooks, and optionally serves a Swagger UI.
+4. `serve` / `watch` then run the generated project for you.
 
-See [docs/annotations.md](docs/annotations.md) for the full annotation
-reference.
+## Documentation
+
+| Document | What it covers |
+| --- | --- |
+| [docs/annotations.md](docs/annotations.md) | All `@SnAPI.*` and `@snapi.*` annotations — routing, middleware, lifecycle hooks, OpenAPI metadata |
+| [docs/config.md](docs/config.md) | `runtime.LoadConfig`, `arg` tag syntax, `.env` file support |
+| [docs/runtime.md](docs/runtime.md) | `Request` and `Response` interfaces available in handlers |
+| [docs/cli.md](docs/cli.md) | CLI commands and flags |
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
+

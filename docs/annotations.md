@@ -57,50 +57,50 @@ func GetTodo(r runtime.Request, w runtime.Response) { ... }
 
 ### Routing
 
-| Annotation                | Notes                                                       |
-| ------------------------- | ----------------------------------------------------------- |
+| Annotation                | Notes                                                        |
+| ------------------------- | ------------------------------------------------------------ |
 | `@SnAPI.GET([path])`      | Path defaults to `/` if omitted. Supports `{param}` syntax. |
-| `@SnAPI.POST([path])`     |                                                             |
-| `@SnAPI.PUT([path])`      |                                                             |
-| `@SnAPI.PATCH([path])`    |                                                             |
-| `@SnAPI.DELETE([path])`   |                                                             |
+| `@SnAPI.POST([path])`     |                                                              |
+| `@SnAPI.PUT([path])`      |                                                              |
+| `@SnAPI.PATCH([path])`    |                                                              |
+| `@SnAPI.DELETE([path])`   |                                                              |
 
 ### Metadata
 
-| Annotation                                 | Description                                |
-| ------------------------------------------ | ------------------------------------------ |
-| `@SnAPI.Summary(text)`                     | Short summary line                         |
-| `@SnAPI.Description(text)`                 | Long description                           |
-| `@SnAPI.OperationID(id)`                   | OpenAPI `operationId`                      |
-| `@SnAPI.Tags(t1, t2, ...)`                 | Group operations in the spec               |
-| `@SnAPI.Deprecated`                        | Mark the operation deprecated              |
-| `@SnAPI.Security(schemeName)`              | Require an auth scheme defined at API level|
-| `@SnAPI.UseMiddleware(pkg.Name)`           | Wrap the handler with a middleware         |
+| Annotation                       | Description                                 |
+| -------------------------------- | ------------------------------------------- |
+| `@SnAPI.Summary(text)`           | Short summary line                          |
+| `@SnAPI.Description(text)`       | Long description                            |
+| `@SnAPI.OperationID(id)`         | OpenAPI `operationId`                       |
+| `@SnAPI.Tags(t1, t2, ...)`       | Group operations in the spec                |
+| `@SnAPI.Deprecated`              | Mark the operation deprecated               |
+| `@SnAPI.Security(schemeName)`    | Require an auth scheme defined at API level |
+| `@SnAPI.UseMiddleware(pkg.Name)` | Wrap the handler with a middleware          |
 
 ### Request shape
 
-| Annotation                                            | Description                            |
-| ----------------------------------------------------- | -------------------------------------- |
-| `@SnAPI.Path(name, type, description)`                | Path parameter                         |
-| `@SnAPI.Query(name, type, description, required)`     | Query parameter                        |
-| `@SnAPI.Header(name, type, description, required)`    | Request header                         |
-| `@SnAPI.Cookie(name, type, description, required)`    | Cookie                                 |
-| `@SnAPI.Request(mediaType, GoType)`                   | Request body (can repeat for variants) |
+| Annotation                                          | Description                            |
+| --------------------------------------------------- | -------------------------------------- |
+| `@SnAPI.Path(name, type, description)`              | Path parameter                         |
+| `@SnAPI.Query(name, type, description, required)`   | Query parameter                        |
+| `@SnAPI.Header(name, type, description, required)`  | Request header                         |
+| `@SnAPI.Cookie(name, type, description, required)`  | Cookie                                 |
+| `@SnAPI.Request(mediaType, GoType)`                 | Request body (can repeat for variants) |
 
 ### Response shape
 
-| Annotation                                                       | Description                          |
-| ---------------------------------------------------------------- | ------------------------------------ |
-| `@SnAPI.Status(code [, description])`                            | Declared response code               |
-| `@SnAPI.Response(code, mediaType, GoType)`                       | Response body type (use `[]T` for arrays) |
-| `@SnAPI.ResponseHeader(code, name, type, description)`           | Response header for a given status   |
+| Annotation                                               | Description                               |
+| -------------------------------------------------------- | ----------------------------------------- |
+| `@SnAPI.Status(code [, description])`                    | Declared response code                    |
+| `@SnAPI.Response(code, mediaType, GoType)`               | Response body type (use `[]T` for arrays) |
+| `@SnAPI.ResponseHeader(code, name, type, description)`   | Response header for a given status        |
 
 ---
 
 ## Middleware
 
-Mark a function with `@SnAPI.Middleware` (or `@snapi.middleware`) to make it
-usable in `@SnAPI.UseMiddleware(...)`. Signature must be
+Mark a function with `@SnAPI.Middleware` to make it usable in
+`@SnAPI.UseMiddleware(...)`. Signature must be
 `func(runtime.Request, runtime.Response, runtime.HandlerFunc)`.
 
 ```go
@@ -129,99 +129,9 @@ func Setup() { ... }
 func Teardown() { ... }
 ```
 
-| Marker             | When it runs                        |
-| ------------------ | ----------------------------------- |
-| `@snapi.setup`     | before the HTTP server starts       |
-| `@snapi.teardown`  | after the HTTP server shuts down    |
+| Marker            | When it runs                      |
+| ----------------- | --------------------------------- |
+| `@snapi.setup`    | before the HTTP server starts     |
+| `@snapi.teardown` | after the HTTP server shuts down  |
 
----
-
-## Config loading
-
-`runtime.LoadConfig[T]()` builds a struct from defaults, environment
-variables and CLI flags. Fields are configured with an `arg` tag.
-
-```go
-type Config struct {
-    Name string `arg:"name,env=NAME,default=SnAPI"`
-}
-
-// @snapi.setup
-func LoadConfig() error {
-    cfg, err := runtime.LoadConfig[Config]()
-    ...
-}
-```
-
-Tag syntax:
-
-| Tag                                  | Meaning                                    |
-| ------------------------------------ | ------------------------------------------ |
-| `arg:"name"`                         | flag `--name` / env `NAME`                 |
-| `arg:"name,env=ENV_VAR"`             | custom env var name                        |
-| `arg:"name,default=value"`           | fallback value                             |
-| `arg:"name,required"`                | error if not supplied                      |
-| `arg:"-"`                            | skip this field                            |
-
-Precedence (later wins): `default` → env → CLI flag.
-
----
-
-## Runtime helpers
-
-The generated server exposes two interfaces from
-[`pkg/runtime`](../pkg/runtime/handler_func.go) to your handlers:
-
-`Request`: `Raw()`, `Context()`, `PathValue`, `QueryValue`,
-`QueryValueOrDefault`, `Header`, `HeaderOrDefault`, `Body`,
-`FromJsonBody`, `Form`, `FormOrDefault`.
-
-`Response`: `Raw()`, `Status`, `Header`, `Json`, `Text`, `Html`,
-`Template`, `RedirectTemporary`, `RedirectPermanent`, `Error`.
-
----
-
-## Generated extras
-
-Every generated project ships with:
-
-- Opt-in Swagger UI + OpenAPI spec. Pass `--swagger <path>` (or `-s <path>`)
-  to `build` / `serve` / `watch` to mount them at that path, for example
-  `snapi serve ./example --swagger /swagger`. Omit the flag (the default is
-  an empty string) to skip swagger generation entirely.
-- Graceful shutdown on `SIGINT` / `SIGTERM`.
-- A standard `net/http` mux — no custom router, nothing to learn.
-
----
-
-## .env file support
-
-`serve` and `watch` automatically load a `.env` file and inject its variables
-into the server process before startup. This lets `runtime.LoadConfig` see
-values that live in the project source tree even though the server runs from a
-temporary build directory.
-
-**Auto-detection** — if `--dotenv` is not set, SnAPI looks for `.env` in the
-project root (`<project_path>/.env`) and loads it when found.
-
-**Explicit path** — pass `--dotenv`/`-e` to point at any file:
-
-```sh
-snapi serve ./myproject --dotenv ./myproject/.env.local
-snapi watch ./myproject -e ./myproject/.env.staging
-```
-
-**Precedence** — variables already present in the shell environment always win
-over `.env` values. The file acts as a set of defaults, not overrides.
-
-**Supported syntax:**
-
-```dotenv
-# comment
-KEY=value
-export EXPORTED=yes
-QUOTED="hello world"
-SINGLE='hello world'
-WITH_EQUALS=base64==
-```
 

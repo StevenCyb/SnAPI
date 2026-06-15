@@ -14,7 +14,11 @@ func registerRoutes(mux *http.ServeMux) {
 {{- range .Handlers }}
 	mux.HandleFunc("{{ .Method }} {{ .Path }}", runtime.WrapHandlerFunc(
 		func(req runtime.Request, resp runtime.Response) {
+{{- if .ReceiverVar }}
+			{{ .ReceiverVar }}.{{ .Name }}(req, resp)
+{{- else }}
 			{{ .Package }}.{{ .Name }}(req, resp)
+{{- end }}
 		},
 {{- range .Middlewares }}
 		{{ .Package }}.{{ .Name }},

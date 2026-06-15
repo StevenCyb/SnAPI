@@ -48,6 +48,8 @@ Get:
 > without notice. Use it for hacking, learning, or as inspiration —
 > not for anything you care about.
 
+> A more advanced example is available in the [example](example) directory.
+
 ## Motivation
 
 I've written a lot of microservices and kept wondering why I always end up

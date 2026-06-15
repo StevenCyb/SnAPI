@@ -46,3 +46,11 @@ func middlewarePkgs(funcs []models.MiddlewareFunc) []models.ProjectImport {
 	}
 	return refs
 }
+
+func handlerStructPkgs(structs []models.HandlerStruct) []models.ProjectImport {
+	refs := make([]models.ProjectImport, 0, len(structs))
+	for _, s := range structs {
+		refs = append(refs, models.ProjectImport{Alias: s.Package, Path: s.ImportPath})
+	}
+	return refs
+}

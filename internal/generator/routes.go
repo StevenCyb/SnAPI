@@ -26,6 +26,7 @@ type handlerEntry struct {
 	Package     string
 	Name        string
 	Middlewares []middlewareRef
+	ReceiverVar string
 }
 
 type middlewareRef struct {
@@ -56,6 +57,31 @@ func (g *Generator) generateRoutes() error {
 		})
 	}
 
+	for _, s := range g.project.HandlerStructs {
+		for _, method := range s.Methods {
+			if method.Meta == nil {
+				continue
+			}
+			// Merge struct-level middleware (first) with method-level middleware.
+			combined := method
+			mergedMeta := *method.Meta
+			mergedMeta.Middleware = append(append([]string(nil), s.Middleware...), method.Meta.Middleware...)
+			combined.Meta = &mergedMeta
+			refs, err := resolveMiddlewareRefs(combined, lookup)
+			if err != nil {
+				return &RoutesGenerationError{Reason: "resolve middleware for struct method", Err: err}
+			}
+			handlers = append(handlers, handlerEntry{
+				Method:      method.Meta.Method,
+				Path:        joinPath(s.PathPrefix, method.Meta.Path),
+				Package:     s.Package,
+				Name:        method.Name,
+				ReceiverVar: s.VarName,
+				Middlewares: refs,
+			})
+		}
+	}
+
 	imports := collectPackages(append(
 		handlerPkgs(g.project.HandlerFuncs),
 		middlewarePkgs(g.project.MiddlewareFuncs)...,
@@ -67,6 +93,23 @@ func (g *Generator) generateRoutes() error {
 		return &RoutesGenerationError{Reason: "render routes.go", Err: err}
 	}
 	return nil
+}
+
+// joinPath joins a path prefix and a route path without producing double slashes.
+// If prefix is empty the path is returned unchanged.
+// If path is "/" the prefix alone is returned (avoids a trailing slash).
+func joinPath(prefix, path string) string {
+	if prefix == "" {
+		return path
+	}
+	prefix = strings.TrimRight(prefix, "/")
+	if path == "/" || path == "" {
+		return prefix
+	}
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return prefix + path
 }
 
 // middlewareLookup indexes middlewares by both "pkg.Name" and "Name".

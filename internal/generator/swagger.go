@@ -62,17 +62,16 @@ func (g *Generator) buildOpenAPISpec() (string, error) {
 	paths := map[string]any{}
 	schemas := map[string]any{}
 
-	for _, h := range g.project.HandlerFuncs {
+	addHandler := func(h models.HandlerFunc, routePath string) {
 		if h.Meta == nil {
-			continue
+			return
 		}
 		method := strings.ToLower(h.Meta.Method)
-		pathItem, _ := paths[h.Meta.Path].(map[string]any)
+		pathItem, _ := paths[routePath].(map[string]any)
 		if pathItem == nil {
 			pathItem = map[string]any{}
-			paths[h.Meta.Path] = pathItem
+			paths[routePath] = pathItem
 		}
-
 		op := map[string]any{
 			"summary":     handlerSummary(h),
 			"description": handlerDescription(h),
@@ -93,6 +92,16 @@ func (g *Generator) buildOpenAPISpec() (string, error) {
 			op["requestBody"] = body
 		}
 		pathItem[method] = op
+	}
+
+	for _, h := range g.project.HandlerFuncs {
+		addHandler(h, h.Meta.Path)
+	}
+
+	for _, s := range g.project.HandlerStructs {
+		for _, m := range s.Methods {
+			addHandler(m, joinPath(s.PathPrefix, m.Meta.Path))
+		}
 	}
 
 	info := map[string]any{
@@ -212,7 +221,9 @@ func handlerTags(h models.HandlerFunc) []string {
 // modelSchemaRef registers the model with the schema registry (if not already
 // present) and returns an OpenAPI schema referencing it. A leading "[]"
 // produces an array schema wrapping the model ref.
-func modelSchemaRef(mod *models.Module, imports map[string]string, schemas map[string]any, ref string) map[string]any {
+// selfPkg / selfImportPath represent the handler's own package so that types
+// like "api.Book" can be resolved even when the package doesn't import itself.
+func modelSchemaRef(mod *models.Module, imports map[string]string, selfPkg, selfImportPath string, schemas map[string]any, ref string) map[string]any {
 	isArray := strings.HasPrefix(ref, "[]")
 	ref = strings.TrimPrefix(ref, "[]")
 
@@ -229,8 +240,22 @@ func modelSchemaRef(mod *models.Module, imports map[string]string, schemas map[s
 			return schema
 		}
 	}
+
+	// Build an effective import map that includes the handler's own package so
+	// that references like "api.Book" (same package as the handler) resolve.
+	effectiveImports := imports
+	if selfPkg != "" && selfImportPath != "" {
+		if _, ok := imports[selfPkg]; !ok {
+			effectiveImports = make(map[string]string, len(imports)+1)
+			for k, v := range imports {
+				effectiveImports[k] = v
+			}
+			effectiveImports[selfPkg] = selfImportPath
+		}
+	}
+
 	if _, exists := schemas[modelName]; !exists {
-		if s, err := resolveModelSchema(mod, imports, alias, modelName, schemas); err == nil && s != nil {
+		if s, err := resolveModelSchema(mod, effectiveImports, alias, modelName, schemas); err == nil && s != nil {
 			schemas[modelName] = s
 		}
 	}
@@ -263,7 +288,7 @@ func handlerResponses(mod *models.Module, h models.HandlerFunc, schemas map[stri
 			entry["content"] = content
 		}
 		content[resp.ContentType] = map[string]any{
-			"schema": modelSchemaRef(mod, h.Imports, schemas, resp.Model),
+			"schema": modelSchemaRef(mod, h.Imports, h.Package, h.ImportPath, schemas, resp.Model),
 		}
 	}
 
@@ -315,7 +340,7 @@ func requestBody(mod *models.Module, h models.HandlerFunc, schemas map[string]an
 	content := map[string]any{}
 	for _, req := range h.Meta.Requests {
 		content[req.ContentType] = map[string]any{
-			"schema": modelSchemaRef(mod, h.Imports, schemas, req.Model),
+			"schema": modelSchemaRef(mod, h.Imports, h.Package, h.ImportPath, schemas, req.Model),
 		}
 	}
 	return map[string]any{

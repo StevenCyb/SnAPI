@@ -97,6 +97,80 @@ func GetTodo(r runtime.Request, w runtime.Response) { ... }
 
 ---
 
+## Handler structs
+
+For related endpoints you can group handlers into a struct. Any method
+annotated with an HTTP verb annotation is registered as a route; the struct
+is instantiated once at startup.
+
+Two optional annotations can be placed on the **struct type declaration** and
+are inherited by every handler method in the group:
+
+| Struct annotation                       | Description                                                       |
+| --------------------------------------- | ----------------------------------------------------------------- |
+| `@SnAPI.Path(prefix)`                   | Prepended to every method's route path. `"/"` becomes the prefix itself (no trailing slash). |
+| `@SnAPI.UseMiddleware(pkg.Name)`        | Applied to every method before that method's own middleware list. Repeatable. |
+| `@SnAPI.Tags(t1, t2, ...)`             | Prepended to every method's tag list (deduplicating). Method-level tags follow. |
+
+```go
+// @SnAPI.Path("/books")
+// @SnAPI.UseMiddleware(api.LoggingMiddleware)
+// @SnAPI.Tags("books")
+type CRUD struct {
+    // ...
+}
+
+// Constructor is optional. Called once before the server starts.
+// Signature must be either func() or func() error.
+func (c *CRUD) Constructor() error {
+    // initialise database connection, etc.
+    return nil
+}
+
+// Destructor is optional. Called once after the server shuts down.
+// Signature must be func() (no return value).
+func (c *CRUD) Destructor() {
+    // release resources
+}
+
+// Route: GET /books
+// LoggingMiddleware is applied automatically from the struct annotation.
+// @SnAPI.GET("/")
+// @SnAPI.Tags("books")
+// @SnAPI.Status(200, "OK")
+func (c *CRUD) List(r runtime.Request, w runtime.Response) { ... }
+
+// Route: GET /books/{id}
+// @SnAPI.GET("/{id}")
+// @SnAPI.Tags("books")
+// @SnAPI.Status(200, "OK")
+// @SnAPI.Status(404, "not found")
+func (c *CRUD) Get(r runtime.Request, w runtime.Response) { ... }
+
+// Route: POST /books
+// Additional method-level middleware is merged after struct-level middleware.
+// @SnAPI.POST("/")
+// @SnAPI.Tags("books")
+// @SnAPI.Request("application/json", model.Book)
+// @SnAPI.Status(201, "Created")
+// @SnAPI.UseMiddleware(api.AuthMiddleware)
+func (c *CRUD) Create(r runtime.Request, w runtime.Response) { ... }
+```
+
+Every `@snapi.*` handler annotation described in the **Handlers** section
+above works identically on struct methods.
+
+| Special method  | Required | Signature                      | Description                                 |
+| --------------- | -------- | ------------------------------ | ------------------------------------------- |
+| `Constructor()` | No       | `func()` or `func() error`     | Called before the server starts             |
+| `Destructor()`  | No       | `func()`                       | Called after the server shuts down          |
+
+The generated code creates a package-level pointer variable for each handler
+struct (`var crud = &api.CRUD{}`), calls `Constructor` / `Destructor` when
+present, and wires each annotated method into the mux.
+
+---
+
 ## Middleware
 
 Mark a function with `@SnAPI.Middleware` to make it usable in

@@ -91,3 +91,19 @@ type InvalidServiceParamError struct {
 func (e *InvalidServiceParamError) Error() string {
 	return fmt.Sprintf("invalid service parameter %q in handler %s in file %s: %s", e.ParamType, e.FuncName, e.FilePath, e.Reason)
 }
+
+// InvalidHandlerStructError represents an error when a struct-based handler group is invalid.
+type InvalidHandlerStructError struct {
+	FilePath string
+	TypeName string
+	FuncName string
+	Reason   string
+}
+
+// Error returns a string representation of the error.
+func (e *InvalidHandlerStructError) Error() string {
+	if e.FuncName != "" {
+		return fmt.Sprintf("invalid handler struct %s.%s in file %s: %s", e.TypeName, e.FuncName, e.FilePath, e.Reason)
+	}
+	return fmt.Sprintf("invalid handler struct %s: %s", e.TypeName, e.Reason)
+}

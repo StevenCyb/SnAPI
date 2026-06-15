@@ -19,8 +19,11 @@ func (g *Generator) generateServe() error {
 	g.project.Addr = g.config.addr()
 	g.project.Swagger = g.config.Swagger != nil
 	g.project.Imports = collectPackages(append(
-		lifecyclePkgs(g.project.SetupFuncs),
-		lifecyclePkgs(g.project.TeardownFuncs)...,
+		append(
+			lifecyclePkgs(g.project.SetupFuncs),
+			lifecyclePkgs(g.project.TeardownFuncs)...,
+		),
+		handlerStructPkgs(g.project.HandlerStructs)...,
 	))
 
 	if err := utils.RenderToFile(g.dst, serveTemplate, "main.go", g.project); err != nil {

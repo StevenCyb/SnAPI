@@ -8,6 +8,7 @@ type Project struct {
 	TeardownFuncs   []LifecycleFunc
 	MiddlewareFuncs []MiddlewareFunc
 	HandlerFuncs    []HandlerFunc
+	HandlerStructs  []HandlerStruct
 
 	// Generation-time fields populated by the generator before rendering.
 	Addr    string
@@ -93,6 +94,23 @@ type HandlerFunc struct {
 	Meta       *HandlerMeta
 	Services   []string
 	Imports    map[string]string // alias -> import path
+}
+
+// HandlerStruct represents a struct-based handler group where each method
+// annotated with @snapi.* becomes an HTTP route. Constructor() and Destructor()
+// are optional; when present they are called on startup and shutdown respectively.
+type HandlerStruct struct {
+	Package                 string
+	ImportPath              string
+	Name                    string
+	VarName                 string
+	HasConstructor          bool
+	ConstructorReturnsError bool
+	HasDestructor           bool
+	PathPrefix              string
+	Middleware              []string
+	Tags                    []string
+	Methods                 []HandlerFunc
 }
 
 // HandlerMeta carries the parsed @snapi.* annotations of a handler.

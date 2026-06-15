@@ -37,7 +37,7 @@ func (p *Parser) handlerExtractor(fc fileCtx) error {
 	var found []models.HandlerFunc
 	for _, decl := range fc.File.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
-		if !ok || fn.Doc == nil {
+		if !ok || fn.Doc == nil || fn.Recv != nil {
 			continue
 		}
 		meta := extractHandlerMeta(commentText(fn.Doc))

@@ -17,6 +17,12 @@ Watches `project_path` for `.go` file changes. On every change it regenerates,
 recompiles and restarts the server automatically. Blocks until
 `SIGINT`/`SIGTERM`.
 
+### `snapi proto <spec_path> <output_dir>`
+
+Generates annotated handler(s) plus DTOs from a `.proto` spec, into
+`output_dir` (or wherever the spec's `option go_package` points, if set).
+See [proto.md](proto.md) for the full mapping reference.
+
 ### `snapi version`
 
 Prints the current version string.

@@ -82,6 +82,18 @@ snapi build ./example ./bin/myapi
 
 See [docs/cli.md](docs/cli.md) for the full command and flag reference.
 
+## Generate from a .proto spec
+
+Already have a gRPC/protobuf service definition? Generate annotated
+handler(s) plus DTOs from it instead of writing them by hand:
+
+```sh
+snapi proto ./todo.proto .
+```
+
+See [`example_proto/`](example_proto) for the full worked example and
+[docs/proto.md](docs/proto.md) for the routing and type-mapping reference.
+
 ## How it works
 
 You point SnAPI at a Go module path. It:
@@ -102,6 +114,7 @@ You point SnAPI at a Go module path. It:
 | [docs/config.md](docs/config.md) | `runtime.LoadConfig`, `arg` tag syntax, `.env` file support |
 | [docs/runtime.md](docs/runtime.md) | `Request` and `Response` interfaces available in handlers |
 | [docs/cli.md](docs/cli.md) | CLI commands and flags |
+| [docs/proto.md](docs/proto.md) | Generating handlers + DTOs from a `.proto` spec |
 
 ## License
 

@@ -1,0 +1,16 @@
+package model
+
+{{if .NeedsTime}}import "time"
+
+{{end}}{{range .Enums}}type {{.Name}} int32
+
+const (
+{{$name := .Name}}{{range .Values}}	{{.Name}} {{$name}} = {{.Number}}
+{{end}})
+
+{{end}}{{range .Messages}}type {{.Name}} struct {
+{{range .Fields}}{{if .OneofGroup}}	// part of oneof "{{.OneofGroup}}"
+{{end}}	{{.GoName}} {{.GoType}} `json:"{{.JSONName}}"`
+{{end}}}
+
+{{end}}

@@ -77,6 +77,21 @@ func main() {
 			),
 		),
 		cli.Command(
+			"proto",
+			cli.Description("Generate an annotated API package and DTOs from a .proto spec."),
+			cli.Argument(
+				"spec_path",
+				cli.Description("Path to the .proto file."),
+				cli.Validate(pathRegex),
+				cli.Argument(
+					"output_dir",
+					cli.Description("Project directory to generate into (must already contain go.mod)."),
+					cli.Validate(pathRegex),
+					cli.Handler(handleProto),
+				),
+			),
+		),
+		cli.Command(
 			"version",
 			cli.Description("Get the version of the CLI"),
 			cli.Handler(func(_ *cli.Context) error {
@@ -103,6 +118,14 @@ func handleBuild(ctx *cli.Context) error {
 		runner.Bootstrap(src, tmp, swagger)
 		runner.Build(tmp, dst, tags)
 	})
+	return nil
+}
+
+func handleProto(ctx *cli.Context) error {
+	spec := *ctx.GetArgument("spec_path")
+	dst := *ctx.GetArgument("output_dir")
+	logger.Info("Generate API from %s into %s", spec, dst)
+	runner.GenerateProto(spec, dst)
 	return nil
 }
 

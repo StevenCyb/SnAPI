@@ -1,0 +1,35 @@
+package {{.PackageName}}
+
+import (
+	"net/http"
+
+	"github.com/StevenCyb/SnAPI/pkg/runtime"
+{{if .NeedsModel}}	"{{.ModelImportPath}}"
+{{end}})
+
+{{range .SkippedStreaming}}// Skipped: {{.}} is a streaming RPC; SnAPI's handler model is request/response only.
+{{end}}
+type {{.PackageServiceName}} struct{}
+
+{{range .Methods}}// @SnAPI.{{.HTTPMethod}}("{{.Path}}")
+// @SnAPI.OperationID("{{.OperationID}}")
+// @SnAPI.Tags("{{$.PackageServiceName}}")
+{{range .PathParams}}// @SnAPI.Path("{{.Name}}", "{{.Type}}")
+{{end}}{{range .QueryParams}}// @SnAPI.Query("{{.Name}}", "{{.Type}}")
+{{end}}{{if .RequestType}}// @SnAPI.Request("application/json", model.{{.RequestType}})
+{{end}}// @SnAPI.Status({{.SuccessStatus}}, "{{.SuccessDesc}}")
+{{if .ResponseType}}// @SnAPI.Response({{.SuccessStatus}}, "application/json", model.{{.ResponseType}})
+{{end}}{{if .ExtraBindingsNote}}// {{.ExtraBindingsNote}}
+{{end}}func (s *{{$.PackageServiceName}}) {{.RPCName}}(r runtime.Request, w runtime.Response) {
+{{if .RequestType}}	var req model.{{.RequestType}}
+	if err := r.FromJsonBody(&req); err != nil {
+		w.Error(http.StatusBadRequest, err.Error())
+		return
+	}
+{{end}}	// TODO: implement.
+{{if .ResponseType}}	var resp model.{{.ResponseType}}
+	w.Json(http.StatusNotImplemented, resp)
+{{else}}	w.Json(http.StatusNotImplemented, map[string]string{"error": "not implemented"})
+{{end}}}
+
+{{end}}

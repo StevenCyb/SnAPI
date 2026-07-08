@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package todo.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+// go_package tells `snapi proto` where to put the generated handlers --
+// resolved against the enclosing module (see docs/proto.md). No `;name`
+// suffix needed here since the package name ("api") already matches the
+// path's last segment; add one only when it should differ.
+option go_package = "github.com/StevenCyb/example_proto/pkg/api";
+
+// TodoService has multiple RPCs -> `snapi proto` generates a handler struct
+// (mirrors example/api_struct.go's CRUD group).
+service TodoService {
+  rpc GetTodo(GetTodoRequest) returns (Todo) {
+    option (google.api.http) = {get: "/v1/todos/{id}"};
+  }
+  rpc ListTodos(ListTodosRequest) returns (ListTodosResponse) {
+    option (google.api.http) = {get: "/v1/todos"};
+  }
+  rpc CreateTodo(CreateTodoRequest) returns (Todo) {
+    option (google.api.http) = {
+      post: "/v1/todos"
+      body: "*"
+    };
+  }
+  rpc DeleteTodo(DeleteTodoRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {delete: "/v1/todos/{id}"};
+  }
+}
+
+// PingService has a single RPC and no google.api.http option -> `snapi proto`
+// generates a free function (mirrors example/api_funcs.go) routed the
+// Connect-RPC way: POST /todo.v1.PingService/Ping.
+service PingService {
+  rpc Ping(google.protobuf.Empty) returns (PingResponse);
+}
+
+message Todo {
+  string id = 1;
+  string title = 2;
+  bool done = 3;
+}
+
+message GetTodoRequest {
+  string id = 1;
+}
+
+message ListTodosRequest {}
+
+message ListTodosResponse {
+  repeated Todo todos = 1;
+}
+
+message CreateTodoRequest {
+  string title = 1;
+}
+
+message DeleteTodoRequest {
+  string id = 1;
+}
+
+message PingResponse {
+  string message = 1;
+}

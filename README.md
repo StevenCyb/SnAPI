@@ -1,13 +1,5 @@
 # SnAPI
 
-```
-   _____       ___    ____  ____
-  / ___/____  /   |  / __ \/  _/
-  \__ \/ __ \/ /| | / /_/ // /
- ___/ / / / / ___ |/ ____// /
-/____/_/ /_/_/  |_/_/   /___/
-```
-
 Annotation-driven HTTP API generator for Go. Write plain handler functions,
 sprinkle `@SnAPI.*` comments on top, and SnAPI generates a runnable `main`
 package plus an OpenAPI/Swagger spec for it.

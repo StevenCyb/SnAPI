@@ -23,6 +23,13 @@ type ProjectConfig struct {
 	Version         string
 	Servers         []ProjectServer
 	SecuritySchemes []SecurityScheme
+	StaticFiles     []StaticFileMapping
+}
+
+// StaticFileMapping serves a directory (recursively) under a URL prefix.
+type StaticFileMapping struct {
+	Prefix string
+	Dir    string
 }
 
 // ProjectServer is one entry in the OpenAPI `servers` list.

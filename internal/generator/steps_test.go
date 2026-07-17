@@ -296,6 +296,67 @@ func TestJoinPath(t *testing.T) {
 	}
 }
 
+func writeStaticSourceProject(t *testing.T) *models.Project {
+	t.Helper()
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "public", "nested"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "public", "index.html"), []byte("<html>index</html>"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "public", "nested", "index.html"), []byte("<html>nested</html>"), 0o600))
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "assets"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "assets", "logo.svg"), []byte("<svg/>"), 0o600))
+
+	proj := sampleProject()
+	proj.MainModule.Dir = root
+	proj.Config.StaticFiles = []models.StaticFileMapping{
+		{Prefix: "/", Dir: "./public"},
+		{Prefix: "assets", Dir: "./assets"},
+	}
+	return proj
+}
+
+func TestGenerateStatic_WritesHandlers(t *testing.T) {
+	t.Parallel()
+	proj := writeStaticSourceProject(t)
+	dst := t.TempDir()
+	g := NewGenerator(proj, dst, Config{})
+	require.NoError(t, g.generateStatic())
+
+	data, err := os.ReadFile(filepath.Join(dst, "static.go"))
+	require.NoError(t, err)
+	content := string(data)
+	assert.Contains(t, content, `//go:embed all:static/0`)
+	assert.Contains(t, content, `mux.Handle("GET /", http.StripPrefix("", http.FileServerFS(staticSub0)))`)
+	assert.Contains(t, content, `//go:embed all:static/1`)
+	assert.Contains(t, content, `mux.Handle("GET /assets/", http.StripPrefix("/assets", http.FileServerFS(staticSub1)))`)
+
+	// Directory content must actually be copied alongside the generated code
+	// (embed reads it at compile time, and `snapi serve`/`watch` run from a
+	// temp dir unrelated to the source project).
+	nested, err := os.ReadFile(filepath.Join(dst, "static", "0", "nested", "index.html"))
+	require.NoError(t, err)
+	assert.Equal(t, "<html>nested</html>", string(nested))
+}
+
+func TestGenerate_NoStaticFilesSkipsStaticFile(t *testing.T) {
+	t.Parallel()
+	dst := t.TempDir()
+	require.NoError(t, NewGenerator(sampleProject(), dst, Config{}).Generate())
+
+	_, err := os.Stat(filepath.Join(dst, "static.go"))
+	assert.True(t, os.IsNotExist(err))
+}
+
+func TestGenerate_WithStaticFilesCallsRegister(t *testing.T) {
+	t.Parallel()
+	proj := writeStaticSourceProject(t)
+	dst := t.TempDir()
+	require.NoError(t, NewGenerator(proj, dst, Config{}).Generate())
+
+	data, err := os.ReadFile(filepath.Join(dst, "main.go"))
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "registerStaticHandlers(mux)")
+}
+
 func TestGenerate_NoSwaggerSkipsSwaggerFile(t *testing.T) {
 	t.Parallel()
 	dst := t.TempDir()

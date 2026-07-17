@@ -49,6 +49,17 @@ func (e *SwaggerGenerationError) Error() string {
 }
 func (e *SwaggerGenerationError) Unwrap() error { return e.Err }
 
+// StaticGenerationError wraps errors that occur while generating static.go.
+type StaticGenerationError struct {
+	Reason string
+	Err    error
+}
+
+func (e *StaticGenerationError) Error() string {
+	return fmt.Sprintf("static generation: %s: %v", e.Reason, e.Err)
+}
+func (e *StaticGenerationError) Unwrap() error { return e.Err }
+
 // MiddlewareNotFoundError indicates a handler referenced a middleware that wasn't discovered.
 type MiddlewareNotFoundError struct {
 	Handler string

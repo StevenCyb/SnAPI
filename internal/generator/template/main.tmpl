@@ -24,6 +24,9 @@ func main() {
 {{- if .Swagger }}
 	registerSwaggerHandlers(mux)
 {{- end }}
+{{- if .Config.StaticFiles }}
+	registerStaticHandlers(mux)
+{{- end }}
 
 	srv := &http.Server{
 		Addr:              addr,

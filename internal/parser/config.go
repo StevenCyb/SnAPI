@@ -15,7 +15,7 @@ func (p *Parser) parseConfig() error {
 
 // configExtractor scans the package-level doc comment of a parsed file for
 // project-wide @snapi.* annotations (title, description, version, server,
-// securityScheme) and merges them into p.project.Config.
+// securityScheme, staticFile) and merges them into p.project.Config.
 func (p *Parser) configExtractor(fc fileCtx) error {
 	if fc.File.Doc == nil {
 		return nil
@@ -25,6 +25,7 @@ func (p *Parser) configExtractor(fc fileCtx) error {
 		title, description, version string
 		servers                     []models.ProjectServer
 		schemes                     []models.SecurityScheme
+		staticFiles                 []models.StaticFileMapping
 	)
 	for _, ann := range utils.ExtractAnnotation(commentText(fc.File.Doc)) {
 		switch strings.ToLower(ann.Name) {
@@ -61,10 +62,16 @@ func (p *Parser) configExtractor(fc fileCtx) error {
 				sc.BearerFormat = ann.Args[3]
 			}
 			schemes = append(schemes, sc)
+		case "staticfile":
+			if len(ann.Args) < 2 {
+				continue
+			}
+			staticFiles = append(staticFiles, models.StaticFileMapping{Prefix: ann.Args[0], Dir: ann.Args[1]})
 		}
 	}
 
-	if title == "" && description == "" && version == "" && len(servers) == 0 && len(schemes) == 0 {
+	if title == "" && description == "" && version == "" &&
+		len(servers) == 0 && len(schemes) == 0 && len(staticFiles) == 0 {
 		return nil
 	}
 
@@ -81,5 +88,6 @@ func (p *Parser) configExtractor(fc fileCtx) error {
 	}
 	p.project.Config.Servers = append(p.project.Config.Servers, servers...)
 	p.project.Config.SecuritySchemes = append(p.project.Config.SecuritySchemes, schemes...)
+	p.project.Config.StaticFiles = append(p.project.Config.StaticFiles, staticFiles...)
 	return nil
 }

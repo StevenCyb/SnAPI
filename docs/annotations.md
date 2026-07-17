@@ -22,6 +22,7 @@ example puts them on `api.go`):
 // @SnAPI.Server("http://localhost:8080", "local development")
 // @SnAPI.Server("https://api.example.local", "production")
 // @SnAPI.SecurityScheme("bearerAuth", "http", "bearer", "JWT")
+// @SnAPI.StaticFile("/", "./public")
 package api
 ```
 
@@ -32,6 +33,7 @@ package api
 | `@SnAPI.Version(version)`                           | OpenAPI `info.version`                   |
 | `@SnAPI.Server(url, description)`                   | adds an entry to `servers[]`             |
 | `@SnAPI.SecurityScheme(name, type, scheme, format)` | declares a reusable auth scheme          |
+| `@SnAPI.StaticFile(prefix, dir)`                    | serves `dir` recursively under `prefix`. Repeatable. |
 
 ---
 

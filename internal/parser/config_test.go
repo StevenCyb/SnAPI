@@ -53,6 +53,22 @@ package api
 	}, p.project.Config)
 }
 
+func TestParseConfig_StaticFile(t *testing.T) {
+	t.Parallel()
+	dir := writeConfigProject(t, `// @SnAPI.StaticFile("/", "./public")
+// @SnAPI.StaticFile("/assets", "./assets")
+package api
+`)
+	p, err := runConfig(t, dir)
+	require.NoError(t, err)
+	assert.Equal(t, models.ProjectConfig{
+		StaticFiles: []models.StaticFileMapping{
+			{Prefix: "/", Dir: "./public"},
+			{Prefix: "/assets", Dir: "./assets"},
+		},
+	}, p.project.Config)
+}
+
 func TestParseConfig_Partial(t *testing.T) {
 	t.Parallel()
 	dir := writeConfigProject(t, `// @SnAPI.Title("Only Title")

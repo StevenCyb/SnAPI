@@ -34,6 +34,9 @@ func (g *Generator) Generate() error {
 	if g.config.Swagger != nil {
 		steps = append(steps, g.generateSwagger)
 	}
+	if len(g.project.Config.StaticFiles) > 0 {
+		steps = append(steps, g.generateStatic)
+	}
 	return g.runSteps(steps...)
 }
 

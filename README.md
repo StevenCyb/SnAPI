@@ -59,6 +59,17 @@ go install github.com/StevenCyb/SnAPI/cmd/snapi@latest
 
 The binary is called `snapi`.
 
+Or grab a prebuilt binary from the [releases page](https://github.com/StevenCyb/SnAPI/releases)
+(linux/darwin/windows, amd64/arm64):
+
+```sh
+curl -LO https://github.com/StevenCyb/SnAPI/releases/latest/download/snapi-<version>-<os>-<arch>.tar.gz
+tar -xzf snapi-<version>-<os>-<arch>.tar.gz
+sudo mv snapi-<version>-<os>-<arch>/snapi /usr/local/bin/
+```
+
+Windows: download the `.zip` instead and extract `snapi.exe`.
+
 ## Quick start
 
 ```sh

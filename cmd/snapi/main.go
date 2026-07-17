@@ -12,7 +12,7 @@ import (
 	"github.com/StevenCyb/GoCLI/pkg/cli"
 )
 
-const version = "v0.1.7"
+const version = "v0.2.0"
 
 var pathRegex = regexp.MustCompile(`^(?:(?:[a-zA-Z]:[\\/]|[\\/]{1,2})?[^<>:"|?*\r\n]+(?:[\\/][^<>:"|?*\r\n]+)*[\\/]?|[\\/])$`)
 

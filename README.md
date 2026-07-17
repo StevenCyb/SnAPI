@@ -1,5 +1,11 @@
 # SnAPI
 
+[![Release](https://img.shields.io/github/v/release/StevenCyb/SnAPI)](https://github.com/StevenCyb/SnAPI/releases)
+[![Test](https://github.com/StevenCyb/SnAPI/actions/workflows/test.yml/badge.svg)](https://github.com/StevenCyb/SnAPI/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Go Reference](https://pkg.go.dev/badge/github.com/StevenCyb/SnAPI.svg)](https://pkg.go.dev/github.com/StevenCyb/SnAPI)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/StevenCyb/SnAPI)](go.mod)
+
 Annotation-driven HTTP API generator for Go. Write plain handler functions,
 sprinkle `@SnAPI.*` comments on top, and SnAPI generates a runnable `main`
 package plus an OpenAPI/Swagger spec for it.
@@ -111,13 +117,13 @@ You point SnAPI at a Go module path. It:
 
 ## Documentation
 
-| Document | What it covers |
-| --- | --- |
+| Document                                   | What it covers                                                                                     |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | [docs/annotations.md](docs/annotations.md) | All `@SnAPI.*` and `@snapi.*` annotations — routing, middleware, lifecycle hooks, OpenAPI metadata |
-| [docs/config.md](docs/config.md) | `runtime.LoadConfig`, `arg` tag syntax, `.env` file support |
-| [docs/runtime.md](docs/runtime.md) | `Request` and `Response` interfaces available in handlers |
-| [docs/cli.md](docs/cli.md) | CLI commands and flags |
-| [docs/proto.md](docs/proto.md) | Generating handlers + DTOs from a `.proto` spec |
+| [docs/config.md](docs/config.md)           | `runtime.LoadConfig`, `arg` tag syntax, `.env` file support                                        |
+| [docs/runtime.md](docs/runtime.md)         | `Request` and `Response` interfaces available in handlers                                          |
+| [docs/cli.md](docs/cli.md)                 | CLI commands and flags                                                                             |
+| [docs/proto.md](docs/proto.md)             | Generating handlers + DTOs from a `.proto` spec                                                    |
 
 ## License
 

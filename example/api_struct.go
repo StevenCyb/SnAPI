@@ -35,7 +35,6 @@ func (c *CRUD) List(req runtime.Request, resp runtime.Response) {
 // @SnAPI.POST("/")
 // @SnAPI.Request("application/json", api.Book)
 // @SnAPI.Status(201)
-// @SnAPI.RequestBody("application/json", Book)
 func (c *CRUD) Create(req runtime.Request, resp runtime.Response) {
 	var newBook Book
 	if err := req.FromJsonBody(&newBook); err != nil {
@@ -46,9 +45,30 @@ func (c *CRUD) Create(req runtime.Request, resp runtime.Response) {
 	resp.Json(http.StatusCreated, newBook)
 }
 
+// @SnAPI.PATCH("/{book}")
+// @SnAPI.Request("application/json", api.Book)
+// @SnAPI.Status(200)
+// @SnAPI.Status(404, "Book not found")
+func (c *CRUD) Rename(req runtime.Request, resp runtime.Response) {
+	book := req.PathValue("book")
+	for i, b := range c.books {
+		if b.Title == book {
+			var updated Book
+			if err := req.FromJsonBody(&updated); err != nil {
+				resp.Error(http.StatusBadRequest, "Invalid JSON")
+				return
+			}
+			c.books[i] = updated
+			resp.Json(http.StatusOK, updated)
+			return
+		}
+	}
+	resp.Error(http.StatusNotFound, "Book not found")
+}
+
 // @SnAPI.DELETE("/{book}")
 // @SnAPI.Status(204)
-// @SnAPI.Status(404, "text/plain", "Book not found")
+// @SnAPI.Status(404, "Book not found")
 func (c *CRUD) Delete(req runtime.Request, resp runtime.Response) {
 	book := req.PathValue("book")
 	for i, b := range c.books {

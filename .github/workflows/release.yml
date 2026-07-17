@@ -45,7 +45,7 @@ jobs:
           BIN="snapi"
           [ "${{ matrix.goos }}" = "windows" ] && BIN="snapi.exe"
           mkdir "$NAME"
-          go build -ldflags "-s -w" -o "$NAME/$BIN" ./cmd/snapi
+          go build -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" -o "$NAME/$BIN" ./cmd/snapi
           if [ "${{ matrix.goos }}" = "windows" ]; then
             (cd "$NAME" && zip -r "../${NAME}.zip" .)
           else

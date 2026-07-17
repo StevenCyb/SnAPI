@@ -12,7 +12,8 @@ import (
 	"github.com/StevenCyb/GoCLI/pkg/cli"
 )
 
-const version = "v0.2.0"
+// version is overridden at release build time via -ldflags "-X main.version=...".
+var version = "dev" //nolint:gochecknoglobals // set by -ldflags at release build time
 
 var pathRegex = regexp.MustCompile(`^(?:(?:[a-zA-Z]:[\\/]|[\\/]{1,2})?[^<>:"|?*\r\n]+(?:[\\/][^<>:"|?*\r\n]+)*[\\/]?|[\\/])$`)
 

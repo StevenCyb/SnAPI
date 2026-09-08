@@ -6,9 +6,11 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/StevenCyb/SnAPI.svg)](https://pkg.go.dev/github.com/StevenCyb/SnAPI)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/StevenCyb/SnAPI)](go.mod)
 
-Annotation-driven HTTP API generator for Go. Write plain handler functions,
-sprinkle `@SnAPI.*` comments on top, and SnAPI generates a runnable `main`
-package plus an OpenAPI/Swagger spec for it.
+Annotation-driven HTTP API and MCP server generator for Go. Write plain
+handler functions, sprinkle `@SnAPI.*` comments on top, and SnAPI generates
+a runnable `main` package plus an OpenAPI/Swagger spec for it — and, with
+the same annotation style, a spec-compliant [MCP](https://modelcontextprotocol.io)
+server for exposing tools, resources and prompts to LLMs.
 
 ## See It In 5 Seconds
 
@@ -103,6 +105,30 @@ snapi proto ./todo.proto .
 See [`example_proto/`](example_proto) for the full worked example and
 [docs/proto.md](docs/proto.md) for the routing and type-mapping reference.
 
+## Expose tools/resources/prompts over MCP
+
+Add MCP annotations next to your handlers — no separate server, no new
+process:
+
+```go
+// @SnAPI.MCPTool("add_note", "Adds a short text note and returns its id")
+// @SnAPI.Request(api.AddNoteArgs)
+// @SnAPI.MCPOutput(api.AddNoteResult)
+func AddNote(r runtime.Request, w runtime.Response) {
+	var args api.AddNoteArgs
+	r.FromJsonBody(&args)
+	w.Json(http.StatusOK, api.AddNoteResult{ID: "note-1"})
+}
+```
+
+`snapi serve .` now also serves a Streamable HTTP MCP endpoint at `/mcp`
+(spec revision `2026-07-28`) with `tools/list`, `tools/call`,
+`resources/*`, `prompts/*` and `server/discover` generated for you. See
+[`example_mcp/`](example_mcp) for a full worked example (including a
+struct that mixes a REST route and MCP tools on shared state) and the
+[MCP section of docs/annotations.md](docs/annotations.md#mcp) for the full
+annotation reference.
+
 ## How it works
 
 You point SnAPI at a Go module path. It:
@@ -112,14 +138,15 @@ You point SnAPI at a Go module path. It:
    OpenAPI metadata).
 3. Generates a fresh `main` package into a temp dir (or `output_path` for
    `build`) that wires `net/http`, registers all routes, mounts middleware,
-   runs lifecycle hooks, and optionally serves a Swagger UI.
+   runs lifecycle hooks, optionally serves a Swagger UI, and — if any MCP
+   annotation was found — mounts an MCP Streamable HTTP endpoint.
 4. `serve` / `watch` then run the generated project for you.
 
 ## Documentation
 
 | Document                                   | What it covers                                                                                     |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| [docs/annotations.md](docs/annotations.md) | All `@SnAPI.*` and `@snapi.*` annotations — routing, middleware, lifecycle hooks, OpenAPI metadata |
+| [docs/annotations.md](docs/annotations.md) | All `@SnAPI.*` and `@snapi.*` annotations — routing, middleware, lifecycle hooks, OpenAPI metadata, MCP tools/resources/prompts |
 | [docs/config.md](docs/config.md)           | `runtime.LoadConfig`, `arg` tag syntax, `.env` file support                                        |
 | [docs/runtime.md](docs/runtime.md)         | `Request` and `Response` interfaces available in handlers                                          |
 | [docs/cli.md](docs/cli.md)                 | CLI commands and flags                                                                             |

@@ -255,7 +255,7 @@ func modelSchemaRef(mod *models.Module, imports map[string]string, selfPkg, self
 	}
 
 	if _, exists := schemas[modelName]; !exists {
-		if s, err := resolveModelSchema(mod, effectiveImports, alias, modelName, schemas); err == nil && s != nil {
+		if s, err := resolveModelSchema(mod, effectiveImports, alias, modelName, openAPISchemaRefPrefix, schemas); err == nil && s != nil {
 			schemas[modelName] = s
 		}
 	}

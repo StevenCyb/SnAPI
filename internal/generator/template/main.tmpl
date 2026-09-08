@@ -27,6 +27,9 @@ func main() {
 {{- if .Config.StaticFiles }}
 	registerStaticHandlers(mux)
 {{- end }}
+{{- if .MCPEnabled }}
+	registerMCPServer(mux)
+{{- end }}
 
 	srv := &http.Server{
 		Addr:              addr,

@@ -18,6 +18,7 @@ var serveTemplate = template.Must(template.New("main").Parse(serveTemplateString
 func (g *Generator) generateServe() error {
 	g.project.Addr = g.config.addr()
 	g.project.Swagger = g.config.Swagger != nil
+	g.project.MCPEnabled = hasMCPFeature(g.project)
 	g.project.Imports = collectPackages(append(
 		append(
 			lifecyclePkgs(g.project.SetupFuncs),

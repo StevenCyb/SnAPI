@@ -64,28 +64,25 @@ type HandlerFunc func(req Request, resp Response)
 type MiddlewareFunc func(req Request, resp Response, next HandlerFunc)
 
 func WrapHandlerFunc(h HandlerFunc, middlewares ...MiddlewareFunc) http.HandlerFunc {
-	if len(middlewares) == 0 {
-		return func(w http.ResponseWriter, r *http.Request) {
-			req := &wrapper.Request{R: r}
-			resp := &wrapper.Response{W: w}
-			h(req, resp)
-		}
-	}
-
+	chain := Chain(h, middlewares...)
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := &wrapper.Request{R: r}
 		resp := &wrapper.Response{W: w}
-
-		var chain HandlerFunc
-		chain = h
-		for _, v := range slices.Backward(middlewares) {
-			mw := v
-			next := chain
-			chain = func(req Request, resp Response) {
-				mw(req, resp, next)
-			}
-		}
-
 		chain(req, resp)
 	}
+}
+
+// Chain folds middlewares (outermost first) around h into a single
+// HandlerFunc. Transport-specific callers (net/http, MCP, ...) invoke the
+// result directly against their own Request/Response implementations.
+func Chain(h HandlerFunc, middlewares ...MiddlewareFunc) HandlerFunc {
+	chain := h
+	for _, v := range slices.Backward(middlewares) {
+		mw := v
+		next := chain
+		chain = func(req Request, resp Response) {
+			mw(req, resp, next)
+		}
+	}
+	return chain
 }

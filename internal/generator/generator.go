@@ -37,6 +37,9 @@ func (g *Generator) Generate() error {
 	if len(g.project.Config.StaticFiles) > 0 {
 		steps = append(steps, g.generateStatic)
 	}
+	if hasMCPFeature(g.project) {
+		steps = append(steps, g.generateMCP)
+	}
 	return g.runSteps(steps...)
 }
 

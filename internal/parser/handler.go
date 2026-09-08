@@ -40,8 +40,11 @@ func (p *Parser) handlerExtractor(fc fileCtx) error {
 		if !ok || fn.Doc == nil || fn.Recv != nil {
 			continue
 		}
-		meta := extractHandlerMeta(commentText(fn.Doc))
-		if meta == nil {
+		httpMeta, tool, resource, prompt, err := extractAnyHandlerMeta(commentText(fn.Doc), fc.Path, fn.Name.Name)
+		if err != nil {
+			return err
+		}
+		if httpMeta == nil && tool == nil && resource == nil && prompt == nil {
 			continue
 		}
 
@@ -62,12 +65,15 @@ func (p *Parser) handlerExtractor(fc fileCtx) error {
 		}
 
 		found = append(found, models.HandlerFunc{
-			Package:    fc.File.Name.Name,
-			ImportPath: fc.ImportPath,
-			Name:       fn.Name.Name,
-			Meta:       meta,
-			Services:   services,
-			Imports:    imports,
+			Package:     fc.File.Name.Name,
+			ImportPath:  fc.ImportPath,
+			Name:        fn.Name.Name,
+			Meta:        httpMeta,
+			MCPTool:     tool,
+			MCPResource: resource,
+			MCPPrompt:   prompt,
+			Services:    services,
+			Imports:     imports,
 		})
 	}
 

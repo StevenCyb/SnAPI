@@ -12,12 +12,19 @@ import (
 	"github.com/StevenCyb/SnAPI/internal/models"
 )
 
-// resolveModelSchema looks up the OpenAPI schema for `alias.typeName` by
+// openAPISchemaRefPrefix is the $ref prefix used when resolving schemas for
+// the OpenAPI/Swagger document.
+const openAPISchemaRefPrefix = "#/components/schemas/"
+
+// resolveModelSchema looks up the JSON Schema for `alias.typeName` by
 // resolving the alias against the file's import map, walking to the package
 // directory (using the module's go.mod replace directives), parsing the
-// package's Go files and converting the type spec into a schema map. Returns
-// (nil, nil) when the type can't be located locally (e.g. third-party).
-func resolveModelSchema(mod *models.Module, imports map[string]string, alias, typeName string, registry map[string]any) (any, error) {
+// package's Go files and converting the type spec into a schema map.
+// refPrefix controls the "$ref" prefix used for locally-registered named
+// types (e.g. "#/components/schemas/" for OpenAPI, "#/$defs/" for MCP tool
+// schemas). Returns (nil, nil) when the type can't be located locally (e.g.
+// third-party).
+func resolveModelSchema(mod *models.Module, imports map[string]string, alias, typeName, refPrefix string, registry map[string]any) (any, error) {
 	if mod == nil || alias == "" || typeName == "" {
 		return nil, nil
 	}
@@ -33,7 +40,7 @@ func resolveModelSchema(mod *models.Module, imports map[string]string, alias, ty
 	if err != nil || ts == nil {
 		return nil, err
 	}
-	return exprToSchema(ts.Type, pkgFiles, mod, pkgDir, importPath, registry), nil
+	return exprToSchema(ts.Type, pkgFiles, mod, pkgDir, importPath, refPrefix, registry), nil
 }
 
 func resolvePackageDir(mod *models.Module, importPath string) (string, bool) {
@@ -91,10 +98,10 @@ func findTypeDecl(pkgDir, typeName string) (*ast.TypeSpec, []*ast.File, error) {
 	return found, files, nil
 }
 
-func exprToSchema(expr ast.Expr, pkgFiles []*ast.File, mod *models.Module, pkgDir, importPath string, registry map[string]any) any {
+func exprToSchema(expr ast.Expr, pkgFiles []*ast.File, mod *models.Module, pkgDir, importPath, refPrefix string, registry map[string]any) any {
 	switch t := expr.(type) {
 	case *ast.StarExpr:
-		return exprToSchema(t.X, pkgFiles, mod, pkgDir, importPath, registry)
+		return exprToSchema(t.X, pkgFiles, mod, pkgDir, importPath, refPrefix, registry)
 	case *ast.Ident:
 		if s, ok := basicTypeSchema(t.Name); ok {
 			return s
@@ -102,9 +109,9 @@ func exprToSchema(expr ast.Expr, pkgFiles []*ast.File, mod *models.Module, pkgDi
 		if local := findLocalTypeSpec(pkgFiles, t.Name); local != nil {
 			if _, exists := registry[t.Name]; !exists {
 				registry[t.Name] = map[string]any{"type": "object"}
-				registry[t.Name] = exprToSchema(local.Type, pkgFiles, mod, pkgDir, importPath, registry)
+				registry[t.Name] = exprToSchema(local.Type, pkgFiles, mod, pkgDir, importPath, refPrefix, registry)
 			}
-			return map[string]any{"$ref": "#/components/schemas/" + t.Name}
+			return map[string]any{"$ref": refPrefix + t.Name}
 		}
 		return map[string]any{"type": "object"}
 	case *ast.SelectorExpr:
@@ -113,20 +120,20 @@ func exprToSchema(expr ast.Expr, pkgFiles []*ast.File, mod *models.Module, pkgDi
 	case *ast.ArrayType:
 		return map[string]any{
 			"type":  "array",
-			"items": exprToSchema(t.Elt, pkgFiles, mod, pkgDir, importPath, registry),
+			"items": exprToSchema(t.Elt, pkgFiles, mod, pkgDir, importPath, refPrefix, registry),
 		}
 	case *ast.MapType:
 		return map[string]any{
 			"type":                 "object",
-			"additionalProperties": exprToSchema(t.Value, pkgFiles, mod, pkgDir, importPath, registry),
+			"additionalProperties": exprToSchema(t.Value, pkgFiles, mod, pkgDir, importPath, refPrefix, registry),
 		}
 	case *ast.StructType:
-		return structSchema(t, pkgFiles, mod, pkgDir, importPath, registry)
+		return structSchema(t, pkgFiles, mod, pkgDir, importPath, refPrefix, registry)
 	}
 	return map[string]any{"type": "object"}
 }
 
-func structSchema(st *ast.StructType, pkgFiles []*ast.File, mod *models.Module, pkgDir, importPath string, registry map[string]any) any {
+func structSchema(st *ast.StructType, pkgFiles []*ast.File, mod *models.Module, pkgDir, importPath, refPrefix string, registry map[string]any) any {
 	properties := map[string]any{}
 	var required []string
 	for _, field := range st.Fields.List {
@@ -145,7 +152,7 @@ func structSchema(st *ast.StructType, pkgFiles []*ast.File, mod *models.Module, 
 			if prop == "" {
 				prop = fname.Name
 			}
-			properties[prop] = exprToSchema(field.Type, pkgFiles, mod, pkgDir, importPath, registry)
+			properties[prop] = exprToSchema(field.Type, pkgFiles, mod, pkgDir, importPath, refPrefix, registry)
 			if !omitempty {
 				required = append(required, prop)
 			}

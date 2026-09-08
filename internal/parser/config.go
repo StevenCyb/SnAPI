@@ -26,6 +26,9 @@ func (p *Parser) configExtractor(fc fileCtx) error {
 		servers                     []models.ProjectServer
 		schemes                     []models.SecurityScheme
 		staticFiles                 []models.StaticFileMapping
+		mcpInstructions             string
+		mcpEndpoint                 string
+		mcpAllowedOrigins           []string
 	)
 	for _, ann := range utils.ExtractAnnotation(commentText(fc.File.Doc)) {
 		switch strings.ToLower(ann.Name) {
@@ -67,11 +70,24 @@ func (p *Parser) configExtractor(fc fileCtx) error {
 				continue
 			}
 			staticFiles = append(staticFiles, models.StaticFileMapping{Prefix: ann.Args[0], Dir: ann.Args[1]})
+		case "mcpinstructions":
+			if len(ann.Args) > 0 {
+				mcpInstructions = ann.Args[0]
+			}
+		case "mcpendpoint":
+			if len(ann.Args) > 0 {
+				mcpEndpoint = ann.Args[0]
+			}
+		case "mcpallowedorigin":
+			if len(ann.Args) > 0 && ann.Args[0] != "" {
+				mcpAllowedOrigins = append(mcpAllowedOrigins, ann.Args[0])
+			}
 		}
 	}
 
 	if title == "" && description == "" && version == "" &&
-		len(servers) == 0 && len(schemes) == 0 && len(staticFiles) == 0 {
+		len(servers) == 0 && len(schemes) == 0 && len(staticFiles) == 0 &&
+		mcpInstructions == "" && mcpEndpoint == "" && len(mcpAllowedOrigins) == 0 {
 		return nil
 	}
 
@@ -86,8 +102,15 @@ func (p *Parser) configExtractor(fc fileCtx) error {
 	if version != "" {
 		p.project.Config.Version = version
 	}
+	if mcpInstructions != "" {
+		p.project.Config.MCPInstructions = &mcpInstructions
+	}
+	if mcpEndpoint != "" {
+		p.project.Config.MCPEndpoint = mcpEndpoint
+	}
 	p.project.Config.Servers = append(p.project.Config.Servers, servers...)
 	p.project.Config.SecuritySchemes = append(p.project.Config.SecuritySchemes, schemes...)
 	p.project.Config.StaticFiles = append(p.project.Config.StaticFiles, staticFiles...)
+	p.project.Config.MCPAllowedOrigins = append(p.project.Config.MCPAllowedOrigins, mcpAllowedOrigins...)
 	return nil
 }

@@ -1,6 +1,7 @@
 # Annotation reference
 
-Every feature shown here is exercised by the [`example/`](../example) project.
+Every feature shown here is exercised by the [`example/`](../example) project
+(HTTP) and the [`example_mcp/`](../example_mcp) project (MCP).
 Annotations live in regular Go comments. Two namespaces exist:
 
 - `@SnAPI.<Name>(...)` — declarative metadata (handlers, OpenAPI, etc.).
@@ -188,6 +189,134 @@ func LoggingMiddleware(r runtime.Request, w runtime.Response, next runtime.Handl
 ```
 
 ---
+
+## MCP
+
+SnAPI can generate an [MCP](https://modelcontextprotocol.io) (Model Context
+Protocol) server alongside your REST API, using the exact same
+annotation style. It implements the **Streamable HTTP** transport, spec
+revision `2026-07-28` — a stateless-per-request revision with no session,
+no `initialize` handshake, and no `Mcp-Session-Id` (see
+[MCP spec: Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)).
+
+Nothing needs to be enabled explicitly: as soon as any function or struct
+method carries `@SnAPI.MCPTool`, `@SnAPI.MCPResource` or `@SnAPI.MCPPrompt`,
+SnAPI generates `mcp.go` and mounts it on the same `http.ServeMux` as your
+REST routes (default path `/mcp`). `tools/list`, `resources/list`,
+`resources/templates/list`, `prompts/list` and `server/discover` are all
+built for you from the annotations below — there is nothing to hand-write
+for them.
+
+A tool/resource/prompt handler has the exact same signature as an HTTP
+handler — `func(runtime.Request, runtime.Response)` — and can be a plain
+function or a method on a [handler struct](#handler-structs). That means:
+
+- `@SnAPI.UseMiddleware` works unchanged; existing `@SnAPI.Middleware`
+  functions don't need to know anything about MCP.
+- A handler struct's `Constructor`/`Destructor`/shared state work unchanged,
+  so one struct can mix REST routes and MCP tools/resources/prompts (see
+  the `Notes` struct in [`example_mcp/notes.go`](../example_mcp/notes.go),
+  which exposes `GET /notes`, an `add_note` tool and a `note:///{id}`
+  resource off the same in-memory store).
+- `req.FromJsonBody(&args)` decodes a tool's arguments exactly like an HTTP
+  POST body. `req.PathValue(name)` reads a resource template's `{name}`
+  segment. `req.QueryValue(name)` reads a prompt argument by name.
+
+### API-level metadata
+
+Place these on the **package doc comment**, alongside `@SnAPI.Title` /
+`@SnAPI.Version` (reused as-is for the MCP server's reported name/version —
+no separate annotation for those):
+
+```go
+// @SnAPI.MCPInstructions("Use the notes tools to create and read short text notes.")
+// @SnAPI.MCPEndpoint("/mcp")
+// @SnAPI.MCPAllowedOrigin("https://claude.ai")
+package api
+```
+
+| Annotation                          | Purpose                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| `@SnAPI.MCPInstructions(text)`      | Natural-language guidance returned in `server/discover`                |
+| `@SnAPI.MCPEndpoint(path)`          | Mount path for the MCP endpoint. Defaults to `/mcp`.                    |
+| `@SnAPI.MCPAllowedOrigin(origin)`   | Allowlists an `Origin` for cross-origin requests. Repeatable. A request whose `Origin` header is present but not allowlisted is rejected with `403` (DNS-rebinding protection per spec). Requests with no `Origin` header at all — the common case for non-browser MCP clients — are never rejected on this basis. |
+
+### Tools
+
+```go
+// @SnAPI.MCPTool("add_note", "Adds a short text note and returns its id")
+// @SnAPI.Request(api.AddNoteArgs)
+// @SnAPI.MCPOutput(api.AddNoteResult)
+// @SnAPI.UseMiddleware(api.LoggingMiddleware)
+func AddNote(req runtime.Request, resp runtime.Response) {
+    var args AddNoteArgs
+    req.FromJsonBody(&args)
+    resp.Json(http.StatusOK, AddNoteResult{ID: "note-1"})
+}
+```
+
+| Annotation                       | Description                                                                 |
+| --------------------------------- | ----------------------------------------------------------------------------|
+| `@SnAPI.MCPTool(name, description)` | Marks the function/method as an MCP tool. Mutually exclusive with an HTTP verb annotation on the same declaration. |
+| `@SnAPI.Request(GoType)`         | Reused from HTTP handlers (1-arg form). The tool's `inputSchema` is derived from the Go type via reflection over its AST (same resolver used for OpenAPI schemas). |
+| `@SnAPI.MCPOutput(GoType)`       | Optional. Populates `outputSchema` and `structuredContent`; the response body is also always echoed as a `TextContent` block for backward compatibility, per spec. |
+| `@SnAPI.UseMiddleware(pkg.Name)` | Same as HTTP — wraps the tool call.                                          |
+
+A tool execution error (`resp.Error(...)`) becomes `isError: true` in the
+result (a *tool execution error* the model can see and self-correct from),
+not a JSON-RPC protocol error.
+
+### Resources
+
+```go
+// @SnAPI.MCPResource("note:///{id}", "Note", "Reads a single note by id", "text/plain")
+func ReadNote(req runtime.Request, resp runtime.Response) {
+    resp.Text(http.StatusOK, "note contents")
+}
+```
+
+`@SnAPI.MCPResource(uri, name, description, mimeType)` — a `{param}`
+segment in the URI (same syntax as HTTP route params) auto-classifies the
+resource as a **template**: it's listed under `resources/templates/list`
+instead of `resources/list`, and the matched segment is read back via
+`req.PathValue(name)`. Only single-segment `{name}` placeholders are
+supported, not the full RFC 6570 grammar.
+
+A `resources/read` call for a URI that matches no static resource and no
+template returns the spec's resource-not-found error (`-32602`).
+
+### Prompts
+
+```go
+// @SnAPI.MCPPrompt("summarize_notes", "Ask the LLM to summarize a note")
+// @SnAPI.MCPPromptArg("text", "the note text to summarize", "true")
+func SummarizeNotes(req runtime.Request, resp runtime.Response) {
+    resp.Text(http.StatusOK, "Please summarize:\n"+req.QueryValue("text"))
+}
+```
+
+| Annotation                                        | Description                                            |
+| -------------------------------------------------- | ------------------------------------------------------- |
+| `@SnAPI.MCPPrompt(name, description)`             | Marks the function as an MCP prompt.                     |
+| `@SnAPI.MCPPromptArg(name, description, required)` | Declares one prompt argument. Repeatable. Unlike `@SnAPI.Query`/`@SnAPI.Path`, there's no `type` — prompt arguments are always strings, read via `req.QueryValue(name)`. |
+
+`resp.Text(...)` produces a single `user`-role text message. Multi-message
+conversations aren't built by the annotation layer in this version.
+
+### What's not implemented
+
+Deliberately out of scope for this version, since nothing in a
+compile-time-generated server currently needs them:
+
+- `subscriptions/listen` (server push for list-changed notifications) — a
+  generated server's tool/resource/prompt list is fixed at build time, so
+  there's nothing to push.
+- Sampling, elicitation, roots (Multi Round-Trip Requests) — deprecated in
+  this spec revision.
+- `x-mcp-header` (mirroring a tool argument into an HTTP header for
+  intermediaries).
+- Multiple `resources/read` content entries per call, and multi-message
+  prompts — one entry/message per call for now.
 
 ## Lifecycle hooks
 

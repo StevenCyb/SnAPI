@@ -146,8 +146,11 @@ func (p *Parser) collectStructMethod(fc fileCtx, fn *ast.FuncDecl, imports map[s
 		if fn.Doc == nil {
 			return nil
 		}
-		meta := extractHandlerMeta(commentText(fn.Doc))
-		if meta == nil {
+		httpMeta, tool, resource, prompt, err := extractAnyHandlerMeta(commentText(fn.Doc), fc.Path, fn.Name.Name)
+		if err != nil {
+			return err
+		}
+		if httpMeta == nil && tool == nil && resource == nil && prompt == nil {
 			return nil
 		}
 		params := fn.Type.Params.List
@@ -161,11 +164,14 @@ func (p *Parser) collectStructMethod(fc fileCtx, fn *ast.FuncDecl, imports map[s
 			return ErrSecondParamMustBeResponse
 		}
 		method := models.HandlerFunc{
-			Package:    fc.File.Name.Name,
-			ImportPath: fc.ImportPath,
-			Name:       fn.Name.Name,
-			Meta:       meta,
-			Imports:    imports,
+			Package:     fc.File.Name.Name,
+			ImportPath:  fc.ImportPath,
+			Name:        fn.Name.Name,
+			Meta:        httpMeta,
+			MCPTool:     tool,
+			MCPResource: resource,
+			MCPPrompt:   prompt,
+			Imports:     imports,
 		}
 		p.mu.Lock()
 		c := p.getOrCreateCandidate(key, fc.File.Name.Name, fc.ImportPath)

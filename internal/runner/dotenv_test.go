@@ -56,7 +56,7 @@ func TestParseDotEnv_ExportPrefix(t *testing.T) {
 
 func TestParseDotEnv_DoubleQuotedValue(t *testing.T) {
 	t.Parallel()
-	path := writeDotEnv(t, `KEY="hello world"` + "\n")
+	path := writeDotEnv(t, `KEY="hello world"`+"\n")
 	pairs, err := parseDotEnv(path)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"KEY=hello world"}, pairs)
@@ -72,7 +72,7 @@ func TestParseDotEnv_SingleQuotedValue(t *testing.T) {
 
 func TestParseDotEnv_MismatchedQuotesNotStripped(t *testing.T) {
 	t.Parallel()
-	path := writeDotEnv(t, `KEY="mismatch'` + "\n")
+	path := writeDotEnv(t, `KEY="mismatch'`+"\n")
 	pairs, err := parseDotEnv(path)
 	require.NoError(t, err)
 	assert.Equal(t, []string{`KEY="mismatch'`}, pairs)

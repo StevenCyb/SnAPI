@@ -11,6 +11,7 @@ linters:
   enable:
     - gomodguard_v2
   disable:
+    - gomodguard
     - wrapcheck
     - varnamelen
     - testpackage

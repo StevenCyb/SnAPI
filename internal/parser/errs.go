@@ -92,6 +92,21 @@ func (e *InvalidServiceParamError) Error() string {
 	return fmt.Sprintf("invalid service parameter %q in handler %s in file %s: %s", e.ParamType, e.FuncName, e.FilePath, e.Reason)
 }
 
+// MultipleAnnotationFamiliesError represents an error when a function or
+// method carries annotations from more than one handler family (HTTP verb,
+// @SnAPI.MCPTool, @SnAPI.MCPResource, @SnAPI.MCPPrompt).
+type MultipleAnnotationFamiliesError struct {
+	FilePath string
+	FuncName string
+	Families []string
+}
+
+// Error returns a string representation of the error.
+func (e *MultipleAnnotationFamiliesError) Error() string {
+	return fmt.Sprintf("%s in file %s carries more than one handler annotation family: %v",
+		e.FuncName, e.FilePath, e.Families)
+}
+
 // InvalidHandlerStructError represents an error when a struct-based handler group is invalid.
 type InvalidHandlerStructError struct {
 	FilePath string

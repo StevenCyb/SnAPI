@@ -11,19 +11,23 @@ type Project struct {
 	HandlerStructs  []HandlerStruct
 
 	// Generation-time fields populated by the generator before rendering.
-	Addr    string
-	Swagger bool
-	Imports []ProjectImport
+	Addr       string
+	Swagger    bool
+	MCPEnabled bool
+	Imports    []ProjectImport
 }
 
 // ProjectConfig holds project-wide metadata parsed from package-level annotations.
 type ProjectConfig struct {
-	Title           string
-	Description     string
-	Version         string
-	Servers         []ProjectServer
-	SecuritySchemes []SecurityScheme
-	StaticFiles     []StaticFileMapping
+	Title             string
+	Description       string
+	Version           string
+	Servers           []ProjectServer
+	SecuritySchemes   []SecurityScheme
+	StaticFiles       []StaticFileMapping
+	MCPInstructions   *string
+	MCPEndpoint       string
+	MCPAllowedOrigins []string
 }
 
 // StaticFileMapping serves a directory (recursively) under a URL prefix.
@@ -93,14 +97,50 @@ type MiddlewareFunc struct {
 	Name       string
 }
 
-// HandlerFunc represents an HTTP handler function discovered in source files.
+// HandlerFunc represents a handler function discovered in source files.
+// Exactly one of Meta (HTTP), MCPTool, MCPResource, MCPPrompt is set,
+// depending on which annotation family the function/method carries.
 type HandlerFunc struct {
-	Package    string
-	ImportPath string
-	Name       string
-	Meta       *HandlerMeta
-	Services   []string
-	Imports    map[string]string // alias -> import path
+	Package     string
+	ImportPath  string
+	Name        string
+	Meta        *HandlerMeta
+	MCPTool     *MCPToolMeta
+	MCPResource *MCPResourceMeta
+	MCPPrompt   *MCPPromptMeta
+	Services    []string
+	Imports     map[string]string // alias -> import path
+}
+
+// MCPToolMeta carries the parsed @SnAPI.MCPTool annotations of a tool handler.
+type MCPToolMeta struct {
+	Name        string
+	Description string
+	InputModel  string  // Go type, from @SnAPI.Request(GoType)
+	OutputModel *string // Go type, from @SnAPI.MCPOutput(GoType)
+	Middleware  []string
+}
+
+// MCPResourceMeta carries the parsed @SnAPI.MCPResource annotation of a
+// resource handler. A URI containing a "{param}" segment is a resource
+// template (listed under resources/templates/list); the matched segment is
+// exposed to the handler via runtime.Request.PathValue.
+type MCPResourceMeta struct {
+	URI         string
+	Name        string
+	Description string
+	MimeType    string
+	Middleware  []string
+}
+
+// MCPPromptMeta carries the parsed @SnAPI.MCPPrompt annotations of a prompt
+// handler. Arguments (@SnAPI.MCPPromptArg) are exposed to the handler via
+// runtime.Request.QueryValue.
+type MCPPromptMeta struct {
+	Name        string
+	Description string
+	Args        []HandlerParam
+	Middleware  []string
 }
 
 // HandlerStruct represents a struct-based handler group where each method

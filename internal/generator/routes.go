@@ -83,7 +83,7 @@ func (g *Generator) generateRoutes() error {
 	}
 
 	imports := collectPackages(append(
-		handlerPkgs(g.project.HandlerFuncs),
+		handlerPkgs(httpHandlerFuncs(g.project.HandlerFuncs)),
 		middlewarePkgs(g.project.MiddlewareFuncs)...,
 	))
 
@@ -129,11 +129,23 @@ func middlewareLookup(mws []models.MiddlewareFunc) map[string]models.MiddlewareF
 // ("Name"). Bare names prefer the handler's own package, then fall back to any
 // middleware with that name.
 func resolveMiddlewareRefs(h models.HandlerFunc, lookup map[string]models.MiddlewareFunc) ([]middlewareRef, error) {
-	if h.Meta == nil || len(h.Meta.Middleware) == 0 {
+	if h.Meta == nil {
 		return nil, nil
 	}
-	refs := make([]middlewareRef, 0, len(h.Meta.Middleware))
-	for _, name := range h.Meta.Middleware {
+	return resolveMiddlewareNames(h.Name, h.Package, h.Meta.Middleware, lookup)
+}
+
+// resolveMiddlewareNames converts @snapi.usemiddleware names into concrete
+// package/func refs. Names may be qualified ("pkg.Name") or bare ("Name").
+// Bare names prefer pkg (the referencing handler's own package), then fall
+// back to any middleware with that name. handlerName is used only to build
+// MiddlewareNotFoundError.
+func resolveMiddlewareNames(handlerName, pkg string, names []string, lookup map[string]models.MiddlewareFunc) ([]middlewareRef, error) {
+	if len(names) == 0 {
+		return nil, nil
+	}
+	refs := make([]middlewareRef, 0, len(names))
+	for _, name := range names {
 		var (
 			mw    models.MiddlewareFunc
 			found bool
@@ -141,12 +153,12 @@ func resolveMiddlewareRefs(h models.HandlerFunc, lookup map[string]models.Middle
 		if strings.Contains(name, ".") {
 			mw, found = lookup[name]
 		} else {
-			if mw, found = lookup[h.Package+"."+name]; !found {
+			if mw, found = lookup[pkg+"."+name]; !found {
 				mw, found = lookup[name]
 			}
 		}
 		if !found {
-			return nil, &MiddlewareNotFoundError{Handler: h.Name, Name: name}
+			return nil, &MiddlewareNotFoundError{Handler: handlerName, Name: name}
 		}
 		refs = append(refs, middlewareRef{Package: mw.Package, Name: mw.Name})
 	}

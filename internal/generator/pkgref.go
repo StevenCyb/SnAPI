@@ -31,6 +31,19 @@ func lifecyclePkgs(funcs []models.LifecycleFunc) []models.ProjectImport {
 	return refs
 }
 
+// httpHandlerFuncs returns only the funcs that are HTTP handlers (as opposed
+// to MCP tools/resources/prompts, which share the same models.HandlerFunc
+// shape but populate a different Meta field).
+func httpHandlerFuncs(funcs []models.HandlerFunc) []models.HandlerFunc {
+	out := make([]models.HandlerFunc, 0, len(funcs))
+	for _, f := range funcs {
+		if f.Meta != nil {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
 func handlerPkgs(funcs []models.HandlerFunc) []models.ProjectImport {
 	refs := make([]models.ProjectImport, 0, len(funcs))
 	for _, f := range funcs {
